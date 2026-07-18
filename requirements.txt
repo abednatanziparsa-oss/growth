@@ -1,0 +1,6 @@
+# Growth - Placement Exam: Todoist Synchronizer
+# Python 3.11+
+
+todoist-api-python>=2.1.7    # Official Todoist REST API client
+PyYAML>=6.0.1                # Study plan loading
+python-dotenv>=1.0.1         # .env file support for API token

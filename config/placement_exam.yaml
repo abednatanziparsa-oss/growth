@@ -1,0 +1,74 @@
+# =============================================================================
+# Growth - Placement Exam: Study Plan
+# =============================================================================
+# This file is the single source of truth for what gets created in Todoist.
+# Edit the chapter lists below, then run:
+#
+#     python -m placement_exam.main --dry-run     # preview
+#     python -m placement_exam.main               # push to Todoist
+#
+# Priority levels (Todoist):
+#   4 = P1 (Highest)   3 = P2   2 = P3   1 = P4 (Lowest)
+#
+# `weak: true` on a chapter overrides the subject priority and sets it to P1,
+# so weaker topics surface to the top of the today/upcoming views.
+# =============================================================================
+
+project_name: "Growth - Placement Exam"
+
+# ----------------------------------------------------------------------------
+# Subjects -> each becomes a Todoist section.
+# Empty `chapters: []` is allowed; the section is still created.
+# ----------------------------------------------------------------------------
+subjects:
+  - name: "Mathematics"
+    emoji: "📘"
+    priority: 4               # P1 — strongest dependency, most problem solving
+    chapters:
+      - name: "Sets"
+        weak: true
+      - name: "Trigonometry"
+        weak: true
+      - name: "Statistics & Probability"
+        weak: true
+      - name: "Functions"
+      - name: "Polynomials"
+      - name: "Exponential & Logarithm"
+      - name: "Limit & Derivative"
+      - name: "Sequences & Series"
+
+  - name: "Geometry"
+    emoji: "📐"
+    priority: 4               # P1
+    chapters:
+      - name: "Chapter 1"     # TODO: replace with real chapter names
+      - name: "Chapter 2"
+
+  - name: "Physics"
+    emoji: "⚛"
+    priority: 3               # P2 — medium dependency
+    chapters:
+      - name: "Chapter 1"     # TODO: replace with real chapter names
+
+  - name: "Chemistry"
+    emoji: "🧪"
+    priority: 2               # P3 — lightest for this exam
+    chapters:
+      - name: "Chapter 1"     # TODO: replace with real chapter names
+
+# ----------------------------------------------------------------------------
+# These subtasks are created under every chapter (parent task).
+# ----------------------------------------------------------------------------
+standard_subtasks:
+  - "Study Concepts"
+  - "Textbook Exercises"
+  - "Sample Questions"
+  - "Mistakes Analysis"
+  - "Review"
+
+# ----------------------------------------------------------------------------
+# Extra empty sections (no tasks) for later phases of the study strategy.
+# ----------------------------------------------------------------------------
+extra_sections:
+  - "🔄 Mistake Fix"
+  - "✅ Final Review"

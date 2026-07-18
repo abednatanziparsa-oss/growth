@@ -1,0 +1,23 @@
+# Aider
+.aider*
+
+# ZCode
+.zcode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# Environment / secrets
+.env
+.env.local
+
+# Output artifacts
+placement_exam_plan.csv
+*.log
