@@ -1,0 +1,52 @@
+# =============================================================================
+# Growth OS — pre-commit hooks
+# =============================================================================
+# Install:  make install  (runs `pre-commit install` automatically)
+# Run:      pre-commit run [--all-files]
+# =============================================================================
+
+repos:
+  # --- Ruff: linting + formatting + import sorting (single tool) -----------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # --- uv: verify lockfile is in sync with pyproject.toml -----------------
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: v0.4.18
+    hooks:
+      - id: uv-lock
+
+  # --- Standard hooks -------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+        exclude: ^archive/
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  # --- mypy: type checking on inner rings (domain, application) ------------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        name: mypy (domain + application)
+        args: [--config-file=pyproject.toml]
+        files: ^(src/growth/(domain|application)/)
+        additional_dependencies: ["pydantic>=2.5"]
+
+  # --- import-linter: hexagonal dependency enforcement ---------------------
+  - repo: https://github.com/browniebroke/import-linter-pre-commit
+    rev: v1.2.0
+    hooks:
+      - id: lint-imports

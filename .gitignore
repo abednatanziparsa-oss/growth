@@ -1,23 +1,59 @@
-# Aider
-.aider*
+# =============================================================================
+# Growth OS — gitignore
+# =============================================================================
 
-# ZCode
-.zcode/
-
-# Python
+# --- Python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
-.pytest_cache/
-venv/
-.venv/
-env/
+*.egg
+dist/
+build/
+eggs/
+sdist/
 
-# Environment / secrets
+# --- Virtual environments & package managers -------------------------------
+.venv/
+venv/
+env/
+.python-version
+
+# --- Testing & coverage ----------------------------------------------------
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+.pytest_cache/
+
+# --- Type checking & linting -----------------------------------------------
+.mypy_cache/
+.ruff_cache/
+
+# --- Environment / secrets (NEVER commit real .env) ------------------------
 .env
 .env.local
+.env.production
 
-# Output artifacts
-placement_exam_plan.csv
+# --- Operating system -------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE / editor -----------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.code-workspace
+
+# --- Output artifacts -------------------------------------------------------
 *.log
+*.csv
+
+# --- Aider ------------------------------------------------------------------
+.aider*
+
+# --- ZCode (tool-local) ----------------------------------------------------
+.zcode/

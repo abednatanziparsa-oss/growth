@@ -1,0 +1,241 @@
+# =============================================================================
+# Growth OS — project configuration (single source of truth)
+# =============================================================================
+# This file configures: project metadata, dependencies (via uv), the `growth`
+# CLI entrypoint, and all tooling (ruff, mypy, pytest, import-linter, coverage).
+#
+# Architecture invariant: import-linter contracts below enforce hexagonal
+# dependency direction. See docs/adr/0001-hexagonal-architecture.md.
+# =============================================================================
+
+[project]
+name = "growth-os"
+version = "0.1.0.dev0"
+description = "Growth OS — a personal growth operating system (planning, knowledge, learning, review)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Parsa Abed", email = "abednatanzi.parsa@gmail.com" },
+]
+keywords = ["planner", "productivity", "todoist", "knowledge", "growth"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Office/Business :: Scheduling",
+    "Typing :: Typed",
+]
+
+# Runtime dependencies. Kept deliberately minimal at bootstrap — feature
+# phases add their own (e.g., todoist-api-python in v0.1, pypdf in v0.6).
+dependencies = [
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "python-dotenv>=1.0.1",
+    "structlog>=24.1",
+    "typer>=0.9",
+]
+
+[project.optional-dependencies]
+# Developer tooling. Install with: uv sync --extra dev (or --all-extras).
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    "import-linter>=2.0",
+    "pre-commit>=3.7",
+]
+# Reserved placeholders — declared now so the optional-dependency surface is
+# stable, populated when the corresponding phase needs them.
+ai = []      # v0.6: ollama, openai, anthropic
+pdf = []     # v0.6: pypdf, pdfplumber
+storage = [] # v0.1: sqlalchemy, alembic
+
+[project.scripts]
+# Exposes `growth` on PATH after install (`uv run growth ...`).
+growth = "growth.presentation.cli.app:run"
+
+[project.urls]
+Homepage = "https://github.com/abednatanziparsa-oss/growth"
+Repository = "https://github.com/abednatanziparsa-oss/growth"
+Issues = "https://github.com/abednatanziparsa-oss/growth/issues"
+
+# -----------------------------------------------------------------------------
+# Build system (PEP 517). Using hatchling; uv installs it transparently.
+# -----------------------------------------------------------------------------
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/growth"]
+
+# =============================================================================
+# Ruff — linting + formatting + import sorting (single tool).
+# Strict-but-pragmatic: see docs/adr/0003-toolchain.md and CODE_STYLE.md.
+# =============================================================================
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+extend-exclude = ["archive", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+# Rule families enabled. Commented rationale per family.
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes (unused imports, undefined names, etc.)
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade (modern syntax)
+    "B",    # flake8-bugbear (likely-bugs & design problems)
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib (prefer pathlib over os.path)
+    "ERA",  # eradicate (commented-out code)
+    "PL",   # Pylint (subset)
+    "RUF",  # Ruff-specific rules
+]
+ignore = [
+    # Pragmatic exclusions (full rationale in CODE_STYLE.md).
+    "E501",     # line length handled by formatter, not lint
+    "PLR0913",  # too-many-arguments — sometimes DI requires several params
+    "PLR2004",  # magic-value-in-comparison — noisy in tests
+    "B008",     # function-call-in-default-argument — Typer uses this idiom
+    "RET505",   # unnecessary-else-after-return — readability preference
+    "SIM108",   # if-else-to-expression — ternaries aren't always clearer
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests legitimately use asserts, magic values, and longer argument lists.
+"tests/**" = ["PLR2004", "S101", "ARG001", "ARG002"]
+# Noop implementations are intentionally stubby.
+"src/growth/infrastructure/noop/**" = ["ARG001", "ARG002"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["growth"]
+force-single-line = false
+combine-as-imports = true
+
+[tool.ruff.format]
+# Black-compatible defaults; explicit for clarity.
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+# =============================================================================
+# MyPy — static typing.
+# Strict on the inner rings (domain, application). More relaxed elsewhere.
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["growth"]
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_reexport = true
+show_error_codes = true
+pretty = true
+
+# Tests: pragmatic — we don't want strictness to fight fixture typing.
+[[tool.mypy.overrides]]
+module = "tests.*"
+strict = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+# Noop stubs: relax unused-argument enforcement so signatures can match ports.
+[[tool.mypy.overrides]]
+module = "growth.infrastructure.noop.*"
+strict = true
+
+# =============================================================================
+# Pytest — test runner.
+# =============================================================================
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "unit: isolated tests of a single module (no I/O, no external services).",
+    "integration: tests spanning multiple modules or using real I/O on fixtures.",
+    "contract: conformance tests asserting a port's implementation contract.",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:pytest.*",
+]
+
+# =============================================================================
+# Coverage — measured on src/growth, expected to grow with the project.
+# =============================================================================
+[tool.coverage.run]
+source = ["src/growth"]
+branch = true
+omit = ["*/noop/*", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",  # stub ellipses in protocols / noop impls
+]
+show_missing = true
+skip_covered = false
+
+# =============================================================================
+# import-linter — enforces hexagonal dependency direction.
+# THE load-bearing architectural wall. See docs/adr/0001-hexagonal-architecture.md.
+# Failures here block CI. Run locally with: uv run lint-imports.
+# =============================================================================
+[[tool.importlinter.contracts]]
+name = "Domain has no outbound dependencies"
+type = "forbidden"
+source_modules = [
+    "growth.domain",
+]
+forbidden_modules = [
+    "growth.application",
+    "growth.infrastructure",
+    "growth.presentation",
+    "growth.kernel",
+    "growth.plugins",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application depends only on domain (not infrastructure/presentation/kernel)"
+type = "forbidden"
+source_modules = [
+    "growth.application",
+]
+forbidden_modules = [
+    "growth.infrastructure",
+    "growth.presentation",
+    "growth.kernel",
+]
+
+[[tool.importlinter.contracts]]
+name = "Presentation depends only on application (not infrastructure)"
+type = "forbidden"
+source_modules = [
+    "growth.presentation",
+]
+forbidden_modules = [
+    "growth.infrastructure",
+]
