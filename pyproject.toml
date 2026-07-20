@@ -116,6 +116,7 @@ ignore = [
     "B008",     # function-call-in-default-argument — Typer uses this idiom
     "RET505",   # unnecessary-else-after-return — readability preference
     "SIM108",   # if-else-to-expression — ternaries aren't always clearer
+    "PLC0105",  # TypeVar naming covariance suffix — E is clearer than E_co in Protocols
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -204,6 +205,9 @@ skip_covered = false
 # THE load-bearing architectural wall. See docs/adr/0001-hexagonal-architecture.md.
 # Failures here block CI. Run locally with: uv run lint-imports.
 # =============================================================================
+[tool.importlinter]
+root_package = "growth"
+
 [[tool.importlinter.contracts]]
 name = "Domain has no outbound dependencies"
 type = "forbidden"
