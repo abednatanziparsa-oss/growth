@@ -15,10 +15,7 @@ Import-linter contracts enforce the dependency direction. See
 
 from __future__ import annotations
 
-try:  # pragma: no cover - importlib.metadata is environment-dependent
-    from importlib.metadata import PackageNotFoundError, version
-except ImportError:  # pragma: no cover - Python <3.8 fallback (not reached on 3.11+)
-    from importlib_metadata import PackageNotFoundError, version  # type: ignore[no-redef]
+from importlib.metadata import PackageNotFoundError, version
 
 
 def _resolve_version() -> str:

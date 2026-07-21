@@ -117,6 +117,7 @@ ignore = [
     "RET505",   # unnecessary-else-after-return — readability preference
     "SIM108",   # if-else-to-expression — ternaries aren't always clearer
     "PLC0105",  # TypeVar naming covariance suffix — E is clearer than E_co in Protocols
+    "PLW0603",  # global statement — used intentionally for logging idempotency flag
 ]
 
 [tool.ruff.lint.per-file-ignores]

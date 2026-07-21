@@ -57,3 +57,15 @@ desktop.ini
 
 # --- ZCode (tool-local) ----------------------------------------------------
 .zcode/
+
+# --- Agent runtime files (autoclaw/hermes) ---------------------------------
+# These are personal agent-runtime files, not part of the project source.
+.openclaw-attachments/
+evolution-drafts/
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+memory/
