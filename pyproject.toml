@@ -236,7 +236,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Presentation depends only on application (not infrastructure)"
+name = "Presentation depends only on application + kernel (not infrastructure directly)"
 type = "forbidden"
 source_modules = [
     "growth.presentation",
@@ -244,3 +244,9 @@ source_modules = [
 forbidden_modules = [
     "growth.infrastructure",
 ]
+# Presentation may reach the kernel (composition root) and application
+# (use cases / ports). It must not import infrastructure adapters directly —
+# those are wired by kernel/container. allow_indirect_imports=true means
+# only direct imports are checked (the bootstrap → infrastructure chain is
+# an indirect/transitive dependency).
+allow_indirect_imports = true
