@@ -61,6 +61,9 @@ desktop.ini
 # --- Agent runtime files (autoclaw/hermes) ---------------------------------
 # These are personal agent-runtime files, not part of the project source.
 .openclaw-attachments/
+.openclaw/
+.opencode/
+.cluster/
 evolution-drafts/
 AGENTS.md
 HEARTBEAT.md
