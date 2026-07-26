@@ -39,6 +39,7 @@ dependencies = [
     "pydantic>=2.5",
     "pydantic-settings>=2.1",
     "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.3",
     "structlog>=24.1",
     "typer>=0.9",
 ]
@@ -166,9 +167,16 @@ disallow_incomplete_defs = false
 module = "growth.infrastructure.noop.*"
 strict = true
 
-# =============================================================================
-# Pytest — test runner.
-# =============================================================================
+# Yaml: suppress import-untyped for files importing yaml (types-PyYAML optional).
+[[tool.mypy.overrides]]
+module = "growth.application.plan_applier"
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = "growth.infrastructure.parsers.yaml_parser"
+disable_error_code = ["import-untyped"]
+
+# --- AI (all optional, all off by default) -------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]

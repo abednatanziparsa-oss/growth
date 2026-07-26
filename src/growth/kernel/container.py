@@ -1,19 +1,4 @@
-"""Dependency-injection container — manual wiring, no framework.
-
-The composition root. This is the **only** place in the codebase where
-concrete adapter implementations are constructed and assigned to port
-attributes. Use cases receive these via constructor parameters; they
-never reach into the container themselves.
-
-Why manual wiring (no DI framework): the architecture review chose
-"Explicit Over Implicit" — a container framework hides wiring behind
-magic. For a system whose dependency graph grows linearly, manual
-wiring is clearer and easier to reason about.
-
-Bootstrap wiring: ports with optional implementations get Noop variants
-(clock, ai, decision, workflow, events). Phases replace these with
-real adapters behind feature flags (e.g. ``Settings.ai_enabled``).
-"""
+"""Dependency-injection container — manual wiring, no framework."""
 
 from __future__ import annotations
 
