@@ -74,10 +74,14 @@ class TodoistProjection:
                 if not isinstance(chapter, dict):
                     continue
                 ch_priority = 4 if chapter.get("weak") else priority
-                items.append({
-                    "content": chapter.get("name", ""),
-                    "section": section_name,
-                    "priority": ch_priority,
-                    "subtasks": list(subtask_templates) if isinstance(subtask_templates, list) else [],
-                })
+                items.append(
+                    {
+                        "content": chapter.get("name", ""),
+                        "section": section_name,
+                        "priority": ch_priority,
+                        "subtasks": list(subtask_templates)
+                        if isinstance(subtask_templates, list)
+                        else [],
+                    }
+                )
         return items
