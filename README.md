@@ -115,8 +115,11 @@ Three import-linter contracts enforced in CI:
 | [🏗 Architecture](docs/architecture/ARCHITECTURE.md) | System design and dependency rules |
 | [🗺 Roadmap](docs/ROADMAP.md) | v0.1 → v1.0 plan |
 | [🤝 Contributing](docs/CONTRIBUTING.md) | How to contribute |
-| [⚙️ Development Setup](docs/runbooks/development.md) | Dev environment and day-to-day commands |
+| [🦞 Luo Handoff](docs/LUO_HANDOFF.md) | Complete project map for the next agent |
+| [⚙️ Dev Setup](docs/runbooks/development.md) | Dev environment and daily commands |
 | [📝 ADRs](docs/adr/) | Architecture Decision Records (3) |
+| [📋 Changelog](docs/CHANGELOG.md) | Release history |
+| [🎨 Code Style](docs/CODE_STYLE.md) | Coding conventions and tooling rationale |
 
 ---
 
