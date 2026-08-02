@@ -133,9 +133,7 @@ def test_plan_apply_missing_file() -> None:
 
 
 def test_plan_apply_valid_yaml(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "growth.presentation.cli.app.build_app", _SharedDbAppFactory()
-    )
+    monkeypatch.setattr("growth.presentation.cli.app.build_app", _SharedDbAppFactory())
     yaml_path = _yaml_file(
         textwrap.dedent("""\
             project_name: "CLI Test"
@@ -154,18 +152,14 @@ def test_plan_apply_valid_yaml(monkeypatch) -> None:
 
 
 def test_plan_apply_invalid_yaml(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "growth.presentation.cli.app.build_app", _SharedDbAppFactory()
-    )
+    monkeypatch.setattr("growth.presentation.cli.app.build_app", _SharedDbAppFactory())
     yaml_path = _yaml_file("{broken: [")
     result = runner.invoke(app, ["plan", "apply", str(yaml_path)])
     assert result.exit_code != 0
 
 
 def test_plan_show_empty(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "growth.presentation.cli.app.build_app", _SharedDbAppFactory()
-    )
+    monkeypatch.setattr("growth.presentation.cli.app.build_app", _SharedDbAppFactory())
     result = runner.invoke(app, ["plan", "show"])
     assert result.exit_code == 0
     assert "No workspaces found" in result.stdout
