@@ -7,7 +7,7 @@
 - **Type:** Personal growth operating system — planning, knowledge management, learning, review, execution
 - **Architecture:** Hexagonal (Ports & Adapters) with strict import-linter enforcement
 - **Owner:** Parsa Abed
-- **Repo:** `https://github.com/abednatanziparsa-oss/placement-exam-todoist` (⚠️ needs rename to `growth` — blocked by token scope)
+- **Repo:** `https://github.com/abednatanziparsa-oss/growth`
 - **Created:** 2026-07 (bootstrapped by Luo 🦞 over ~10 days)
 
 ## Tech Stack
@@ -26,40 +26,48 @@
 5. Every optional port has a Noop default — system runs offline by default
 6. YAGNI: plugin registry, real adapters, workflow scheduling, AI backends deferred
 
-## Current State (2026-08-02)
+## Current State (2026-08-02) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (50 files), import-linter ✅ (3 kept), pytest ✅ (25 passed)
-- Coverage: 46% (770 statements, 368 missed)
-- Git: 15 commits on main, synced with remote, working tree clean
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (50 files), import-linter ✅ (3 kept), pytest ✅ (87 passed, 0 failed)
+- Coverage: **81%** (771 statements, 135 missed)
+- Git: 19 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
 - Domain events: WorkspaceCreated, ProjectCreated, GoalCreated, MilestoneCreated, TaskCreated, TaskCompleted
-- SQLite repos: file-based (~/.growth/growth.db), 5 repositories
-- YAML parser + HeuristicInterpreter (RawPlan → CanonicalPlan)
+- SQLite repos: file-based (~/.growth/growth.db), 5 repositories — **97% coverage**
+- YAML parser + HeuristicInterpreter (RawPlan → CanonicalPlan) — **100% coverage**
 - Todoist projection (canonical→provider) + Todoist adapter (DRY-RUN ONLY)
-- PlanApplier: YAML → Workspace → Project → Goals → Milestones → Tasks
-- CLI: `growth plan apply/show/stats` + `--version`
+- PlanApplier: YAML → Workspace → Project → Goals → Milestones → Tasks — **100% coverage**
+- CLI: `growth plan apply/show/stats` + `--version` — **97% coverage**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, parser, projection, adapter, repo, workflow
 - Noop implementations for all optional ports
 
+### Coverage Detail (2026-08-02 end-of-session)
+
+| File | Coverage |
+|---|---|
+| `dtos.py` | 100% |
+| `plan_applier.py` | 100% |
+| `ports/interpreter.py` | 100% |
+| `ports/parser.py` | 100% |
+| `planning_repos.py` | 97% |
+| `cli/app.py` | 97% |
+| `kernel/container.py` | 100% |
+| `yaml_parser.py` | 100% |
+| `heuristic.py` | 100% |
+| `TodoistProjection` + `TodoistAdapter` | 0% (dry-run, v0.2) |
+| **Total** | **81%** |
+
 ### What's NOT Yet Built (v0.2 → v1.0)
-- Sync engine: three-way diff, IdentityMap, real Todoist API (v0.2)
+- Sync engine: three-way diff, IdentityMap, real Todoist API (v0.2) ← **next**
 - Markdown export (v0.3)
 - Knowledge substrate: attachments, embeddings, search (v0.4)
 - Reminders, scheduling, Google Calendar (v0.5)
 - AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
 - DecisionEngine, WorkflowEngine (v0.7)
 - Platform: plugin marketplace, desktop app, GraphQL (v1.0)
-
-### Test Coverage Gaps (priority targets)
-- `plan_applier.py`: 21% — critical pipeline, needs integration tests
-- `cli/app.py`: 24% — only user surface, needs integration tests
-- `HeuristicInterpreter`: 0% — critical conversion, needs unit tests
-- `YamlParser`: 0% — critical parsing, needs unit tests
-- `planning_repos.py`: 51% — needs edge case coverage (duplicate, missing parent, cascade)
-- `TodoistProjection`: 0%, `TodoistAdapter`: 0% — need both unit + integration
 
 ## Decisions Made
 
@@ -71,14 +79,13 @@
 6. **Dry-run Todoist** — adapter is stub. Real API deferred to v0.2.
 7. **Archive frozen** — `archive/v0-mvp/` is read-only, never modified.
 8. **Coverage target** — measure on src/growth, omit noop/ and __init__.py.
+9. **CanonicalPlan unfrozen** — changed from frozen=True to kw_only mutable dataclass so interpreters can populate `project_name` and `raw_payload` without monkey-patching private attrs.
 
 ## Known Issues
 
-1. **Git remote name** — still `placement-exam-todoist` (MVP era). Rename to `growth` blocked by token scope (no delete_repo). Parsa must rename from GitHub Settings.
-2. **Token scopes limited** — no `workflow`, no `delete_repo`. CI workflow push to new repo blocked.
-3. **`growth` empty repo** — exists on GitHub (created by mistake during rename attempt). Needs deletion from GitHub UI by Parsa.
-4. **types-PyYAML** — not installed. mypy config suppresses import-untyped for yaml files.
-5. **Coverage 46%** — acceptable for v0.1 but needs to reach 70%+ before v0.2.
+1. **Token scopes limited** — `gh` token has `gist, read:org, repo` but no `workflow` or `delete_repo`. CI workflow push to a new repo would fail; rename/delete must be done from GitHub UI.
+2. **types-PyYAML** — not installed. mypy config suppresses import-untyped for yaml files.
+3. **Todoist adapter is stub** — real API integration deferred to v0.2.
 
 ## Communication Notes
 
@@ -87,25 +94,31 @@
 - Project directory: `C:\Users\Notebook\OneDrive\Desktop\Projects\Growth`
 - Use `uv run` for all Python commands
 
-## Priority Roadmap (2026-08-02)
+## Session Log (2026-08-02)
 
-### Phase 0: Critical (today)
+### Completed This Session
+
+**Phase 0:**
 - [x] Push code to remote ✅
-- [ ] Rename repo from `placement-exam-todoist` to `growth` (blocked — needs manual GitHub action)
-- [ ] Delete empty `growth` repo on GitHub (blocked — needs manual GitHub action)
-- [ ] MEMORY.md created ✅
+- [x] Rename repo `placement-exam-todoist` → `growth` ✅ (Parsa did manually)
+- [x] Delete empty `growth` repo on GitHub ✅ (Parsa did manually)
+- [x] MEMORY.md created and populated ✅
 
-### Phase 1: Consolidate v0.1 (this week)
-- [ ] Integration tests for plan_applier.py (21% → 80%+)
-- [ ] Integration tests for CLI (24% → 70%+)
-- [ ] Coverage for planning_repos.py (51% → 80%+)
-- [ ] Unit tests for HeuristicInterpreter and YamlParser (0% → 90%+)
-- [ ] Sync .env.example with actual .env
+**Phase 1:**
+- [x] Integration tests for `plan_applier.py` (21% → **100%**) ✅ — 11 tests
+- [x] Integration tests for CLI (24% → **97%**) ✅ — 11 tests
+- [x] Coverage for `planning_repos.py` (51% → **97%**) ✅ — 24 new edge-case tests
+- [x] Unit tests for `HeuristicInterpreter` (0% → **100%**) ✅ — 8 tests
+- [x] Unit tests for `YamlParser` (0% → **100%**) ✅ — 8 tests
+- [x] Sync `.env.example` with actual .env ✅
+- [x] Fixed CanonicalPlan frozen dataclass bug (was `frozen=True`, couldn't set attrs) ✅
 
-### Phase 2: v0.2 Sync Engine (2-3 weeks)
-- [ ] Real Todoist adapter (todoist-api-python)
-- [ ] IdentityMap (InternalId ↔ Todoist resource ID)
-- [ ] Three-way diff engine
-- [ ] Conflict detection + resolution
-- [ ] `growth sync` CLI
-- [ ] Integration test with sandbox Todoist project
+**Overall:** 25 → **87 tests**, coverage 46% → **81%**, 5 new commits pushed.
+
+### Next Session: v0.2 Sync Engine
+1. Install `todoist-api-python`
+2. Replace `TodoistAdapter` stub with real API adapter
+3. IdentityMap (InternalId ↔ Todoist resource ID)
+4. Fetch current state from Todoist
+5. Three-way diff engine
+6. `growth sync` CLI
