@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 
 from growth.application.dtos import CanonicalPlan, RawPlan
 from growth.application.ports.interpreter import InterpretationError
-from growth.domain.shared import DEFAULT_SPACE_ID, InternalId, SpaceId
+from growth.domain.shared import DEFAULT_SPACE_ID, SpaceId
 
 __all__ = ["HeuristicInterpreter"]
 
@@ -36,15 +36,13 @@ class HeuristicInterpreter:
 
         project_name = payload.get("project_name", "Untitled Plan")
         if not isinstance(project_name, str) or not project_name.strip():
-            raise InterpretationError("RawPlan is missing a valid 'project_name' field")
+            raise InterpretationError(
+                "RawPlan is missing a valid 'project_name' field"
+            )
 
-        plan = CanonicalPlan(
-            id=InternalId(),
+        return CanonicalPlan(
             space_id=space,
             created_at=datetime.now(UTC),
+            project_name=project_name,
+            raw_payload=payload,
         )
-
-        # Attach metadata that use cases will consume
-        plan._raw_payload = payload  # type: ignore[attr-defined]
-        plan._project_name = project_name  # type: ignore[attr-defined]
-        return plan

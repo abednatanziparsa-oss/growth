@@ -51,25 +51,30 @@ class RawPlan:
 # =============================================================================
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(kw_only=True, slots=True)
 class CanonicalPlan:
     """The canonical plan model — provider-agnostic intended state.
 
-    This is what gets diffed and projected. Bootstrap ships a minimal
-    shell: identity + a space reference. The real aggregate hierarchy
-    (Workspace → Project → Goal → Milestone → Task tree) lands in v0.1.
+    This is what gets diffed and projected. The plan carries a loose
+    payload dict that interpreters populate during the YAML → plan lift.
+    The real aggregate hierarchy (Workspace → Project → Goal → Milestone
+    → Task tree) is materialised by PlanApplier.
 
     The plan is *intended* state, distinct from *observed* state
     (Execution) and *projected* state (provider snapshots). See
     docs/adr/0002-knowledge-centric-architecture.md.
     """
 
-    id: InternalId
+    id: InternalId = field(default_factory=InternalId)
     space_id: SpaceId
     created_at: datetime
     """Wall-clock creation time. Use the Clock port in real code; tests inject."""
 
-    # TODO(v0.1): workspace, projects, goals, milestones, task tree.
+    project_name: str = ""
+    """Human-readable project name lifted from the raw plan."""
+
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    """The original parsed payload, preserved for downstream consumers."""
 
 
 # =============================================================================
