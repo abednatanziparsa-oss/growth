@@ -142,9 +142,7 @@ class TestHeuristicInterpreter:
 
     def test_attaches_project_name(self) -> None:
         interpreter = HeuristicInterpreter()
-        raw = RawPlan(
-            source_format="yaml", payload={"project_name": "My Project"}
-        )
+        raw = RawPlan(source_format="yaml", payload={"project_name": "My Project"})
         result = interpreter.interpret(raw)
         assert result.project_name == "My Project"
 

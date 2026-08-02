@@ -36,9 +36,7 @@ class HeuristicInterpreter:
 
         project_name = payload.get("project_name", "Untitled Plan")
         if not isinstance(project_name, str) or not project_name.strip():
-            raise InterpretationError(
-                "RawPlan is missing a valid 'project_name' field"
-            )
+            raise InterpretationError("RawPlan is missing a valid 'project_name' field")
 
         return CanonicalPlan(
             space_id=space,
