@@ -19,6 +19,10 @@ from typer.testing import CliRunner
 from growth.application.plan_applier import PlanApplier
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.logging.setup import configure_logging
+from growth.infrastructure.storage.identity_map import (
+    IdentityMap,
+    init_identity_map,
+)
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
     MilestoneRepository,
@@ -27,6 +31,7 @@ from growth.infrastructure.storage.planning_repos import (
     WorkspaceRepository,
     init_db,
 )
+from growth.infrastructure.sync.engine import init_sync_state
 from growth.kernel.bootstrap import App
 from growth.kernel.container import Container
 from growth.presentation.cli.app import app
@@ -64,6 +69,7 @@ class _SharedDbAppFactory:
             return App(
                 settings=self._app.settings,
                 container=self._app.container,
+                db=db,
                 workspace_repo=WorkspaceRepository(db),
                 project_repo=ProjectRepository(db),
                 goal_repo=GoalRepository(db),
@@ -76,6 +82,7 @@ class _SharedDbAppFactory:
                     MilestoneRepository(db),
                     TaskRepository(db),
                 ),
+                identity_map=IdentityMap(db),
             )
 
         # First invocation — create everything.
@@ -87,11 +94,14 @@ class _SharedDbAppFactory:
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys = ON")
         init_db(db)
+        init_identity_map(db)
+        init_sync_state(db)
         self._db = db
 
         self._app = App(
             settings=settings,
             container=container,
+            db=db,
             workspace_repo=WorkspaceRepository(db),
             project_repo=ProjectRepository(db),
             goal_repo=GoalRepository(db),
@@ -104,6 +114,7 @@ class _SharedDbAppFactory:
                 MilestoneRepository(db),
                 TaskRepository(db),
             ),
+            identity_map=IdentityMap(db),
         )
         return self._app
 

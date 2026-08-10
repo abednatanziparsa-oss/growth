@@ -6,17 +6,22 @@ calls to obtain a fully-wired application object. It:
 1. Loads ``Settings`` from environment / .env.
 2. Configures logging (structlog + file handler).
 3. Constructs the DI ``Container``.
-4. Wraps the container + planning repositories + use cases in an ``App``.
+4. Initializes storage, identity map, sync state, and repositories.
+5. Wraps everything in an ``App``.
 """
 
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from growth.application.plan_applier import PlanApplier
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.logging.setup import configure_logging
+from growth.infrastructure.storage.identity_map import (
+    IdentityMap,
+    init_identity_map,
+)
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
     MilestoneRepository,
@@ -25,6 +30,7 @@ from growth.infrastructure.storage.planning_repos import (
     WorkspaceRepository,
     init_db,
 )
+from growth.infrastructure.sync.engine import SyncEngine, init_sync_state
 from growth.kernel.container import Container
 
 __all__ = ["App", "build_app"]
@@ -36,12 +42,30 @@ class App:
 
     settings: Settings
     container: Container
-    workspace_repo: WorkspaceRepository
-    project_repo: ProjectRepository
-    goal_repo: GoalRepository
-    milestone_repo: MilestoneRepository
-    task_repo: TaskRepository
-    plan_applier: PlanApplier
+    db: sqlite3.Connection = field(repr=False)
+    workspace_repo: WorkspaceRepository = field(repr=False)
+    project_repo: ProjectRepository = field(repr=False)
+    goal_repo: GoalRepository = field(repr=False)
+    milestone_repo: MilestoneRepository = field(repr=False)
+    task_repo: TaskRepository = field(repr=False)
+    plan_applier: PlanApplier = field(repr=False)
+    identity_map: IdentityMap = field(repr=False)
+
+    @property
+    def sync_engine(self) -> SyncEngine | None:
+        """Build a sync engine on-demand (needs token from settings).
+
+        Returns None when no provider token is configured.
+        """
+        token = self.settings.todoist_api_token
+        if not token:
+            return None
+        from growth.infrastructure.adapters.todoist import TodoistAdapter
+        from growth.infrastructure.projections.todoist import TodoistProjection
+
+        projection = TodoistProjection()
+        adapter = TodoistAdapter(token)
+        return SyncEngine(projection, adapter, self.identity_map, self.db)
 
 
 def build_app(settings: Settings | None = None) -> App:
@@ -62,11 +86,15 @@ def build_app(settings: Settings | None = None) -> App:
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA foreign_keys = ON")
     init_db(db)
+    init_identity_map(db)
+    init_sync_state(db)
+
     workspace_repo = WorkspaceRepository(db)
     project_repo = ProjectRepository(db)
     goal_repo = GoalRepository(db)
     milestone_repo = MilestoneRepository(db)
     task_repo = TaskRepository(db)
+    identity_map = IdentityMap(db)
 
     plan_applier = PlanApplier(
         workspace_repo, project_repo, goal_repo, milestone_repo, task_repo
@@ -75,10 +103,12 @@ def build_app(settings: Settings | None = None) -> App:
     return App(
         settings=settings,
         container=container,
+        db=db,
         workspace_repo=workspace_repo,
         project_repo=project_repo,
         goal_repo=goal_repo,
         milestone_repo=milestone_repo,
         task_repo=task_repo,
         plan_applier=plan_applier,
+        identity_map=identity_map,
     )

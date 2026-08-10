@@ -1,0 +1,21 @@
+project_name: "Growth - Sample Plan"
+subjects:
+  - name: "Computer Science"
+    emoji: "💻"
+    priority: high
+    chapters:
+      - name: "Data Structures"
+      - name: "Algorithms"
+        weak: true
+  - name: "Mathematics"
+    emoji: "📘"
+    priority: medium
+    chapters:
+      - name: "Linear Algebra"
+      - name: "Calculus"
+standard_subtasks:
+  - "Read theory"
+  - "Solve problems"
+  - "Review mistakes"
+extra_sections:
+  - "📝 Weekly Review"

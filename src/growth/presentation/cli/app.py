@@ -8,6 +8,7 @@ Commands:
 - ``growth plan apply``  apply a YAML study plan to the database
 - ``growth plan show``   show the current plan tree
 - ``growth plan stats``  show task/milestone/goal counts
+- ``growth sync``        synchronize plan with Todoist (dry-run by default)
 """
 
 from __future__ import annotations
@@ -149,6 +150,127 @@ def plan_stats() -> None:
     typer.echo(f"Goals:       {goal_count}")
     typer.echo(f"Milestones:  {milestone_count}")
     typer.echo(f"Tasks:       {len(tasks)} ({completed} completed)")
+
+
+sync_app = typer.Typer(help="Synchronization commands.")
+app.add_typer(sync_app, name="sync")
+
+
+@sync_app.command(name="todoist")
+def sync_todoist(
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Preview the ChangeSet without applying it to Todoist.",
+        ),
+    ] = False,
+) -> None:
+    """Synchronize the current plan with Todoist.
+
+    Reads the last-applied plan from the database, projects it into
+    a Todoist-shaped snapshot, diffs against the last-synced state,
+    and applies the resulting ChangeSet.
+
+    Requires GROWTH_TODOIST_API_TOKEN (or TODOIST_API_TOKEN) to be set.
+    """
+    from datetime import UTC, datetime
+
+    from growth.application.dtos import CanonicalPlan
+
+    app_ctx = build_app()
+    settings = app_ctx.settings
+    api_token = settings.todoist_api_token
+
+    if not api_token:
+        typer.echo(
+            "[ERROR] GROWTH_TODOIST_API_TOKEN is not set. "
+            "Set it in your .env file or environment.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    # Load the latest project / plan from the DB
+    workspaces = app_ctx.workspace_repo.list_all()
+    if not workspaces:
+        typer.echo(
+            "[ERROR] No plan found. Run 'growth plan apply <file>' first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    ws = workspaces[0]
+    projects = app_ctx.project_repo.list_by_workspace(ws.id)
+    if not projects:
+        typer.echo(
+            "[ERROR] No project found. Run 'growth plan apply <file>' first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    project = projects[0]
+
+    # Build a CanonicalPlan from the stored project
+    now = datetime.now(UTC)
+    plan = CanonicalPlan(
+        space_id=ws.space_id,
+        created_at=now,
+        project_name=project.title,
+        raw_payload={
+            "project_name": project.title,
+            "subjects": [],
+            "standard_subtasks": [],
+        },
+    )
+
+    # Build sync pipeline via kernel-provided engine
+    engine = app_ctx.sync_engine
+    if engine is None:
+        typer.echo(
+            "[ERROR] No sync engine available — missing provider token.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    # Project + diff — use the projection to generate the desired snapshot.
+    # Access engine internals for dry-run visibility; real sync uses engine.sync().
+    base = engine._load_base("todoist")
+    changeset = engine._differ.diff(
+        engine._projection.project(plan), base
+    )
+
+    typer.echo("Provider:   todoist")
+    typer.echo(f"Project:    {plan.project_name}")
+    typer.echo(f"Changeset:  {len(changeset.operations)} operation(s)")
+    typer.echo()
+
+    for i, op in enumerate(changeset.operations):
+        action = op["op"]
+        detail = op.get("content") or op.get("name") or ""
+        typer.echo(f"  [{i + 1}] {action}: {detail}")
+
+    if dry_run:
+        typer.echo()
+        typer.echo("[DRY-RUN] No changes applied to Todoist.")
+        return
+
+    # Apply
+    typer.echo()
+    typer.echo("Applying changes to Todoist...")
+
+    try:
+        result = engine.sync(plan)
+    except Exception as exc:
+        typer.echo(f"[ERROR] Sync failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    ar = result.apply_result
+    typer.echo(f"[OK] Applied: {ar.applied}, Failed: {ar.failed}")
+    if ar.errors:
+        for e in ar.errors:
+            typer.echo(f"  ! {e}", err=True)
+    if ar.provider_ids:
+        typer.echo(f"  Provider ids: {len(ar.provider_ids)} new mapping(s)")
 
 
 def run() -> None:
