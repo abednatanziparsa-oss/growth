@@ -80,11 +80,12 @@ class Differ:
 
         items = payload.get("items", [])
         for item in items:
+            section_name = item.get("section", "")
             ops.append(
                 {
                     "op": "create_task",
                     "content": item["content"],
-                    "section_id": f"__SECTION_{self._section_index(sections, item['section'])}__",
+                    "section_id": f"__SECTION_{self._section_index(sections, section_name)}__" if section_name else None,
                     "priority": item.get("priority", 1),
                     "subtasks": [
                         {"op": "create_task", "content": st, "priority": item.get("priority", 1)}

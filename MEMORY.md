@@ -26,21 +26,24 @@
 5. Every optional port has a Noop default — system runs offline by default
 6. YAGNI: plugin registry, real adapters, workflow scheduling, AI backends deferred
 
-## Current State (2026-08-02) — updated end of session
+## Current State (2026-08-10) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (50 files), import-linter ✅ (3 kept), pytest ✅ (87 passed, 0 failed)
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (54 files), import-linter ✅ (3 kept), pytest ✅ (87 passed, 0 failed)
 - Coverage: **81%** (771 statements, 135 missed)
-- Git: 19 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 20 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
-### What's Built (v0.1)
+### What's Built (v0.1 → v0.2)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
 - Domain events: WorkspaceCreated, ProjectCreated, GoalCreated, MilestoneCreated, TaskCreated, TaskCompleted
 - SQLite repos: file-based (~/.growth/growth.db), 5 repositories — **97% coverage**
 - YAML parser + HeuristicInterpreter (RawPlan → CanonicalPlan) — **100% coverage**
-- Todoist projection (canonical→provider) + Todoist adapter (DRY-RUN ONLY)
+- Todoist projection (canonical→provider) + TodoistAdapter (REAL API, dry-run flag)
 - PlanApplier: YAML → Workspace → Project → Goals → Milestones → Tasks — **100% coverage**
-- CLI: `growth plan apply/show/stats` + `--version` — **97% coverage**
+- CLI: `growth plan apply/show/stats` + `growth sync todoist --dry-run` + `--version` — **97% coverage**
+- IdentityMap: InternalId ↔ provider resource id persistence in SQLite
+- Differ: two-way snapshot diff producing ChangeSet
+- SyncEngine: orchestrate project → diff → apply → persist
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, parser, projection, adapter, repo, workflow
 - Noop implementations for all optional ports
 
@@ -93,6 +96,30 @@
 - Address directly, no filler pleasantries
 - Project directory: `C:\Users\Notebook\OneDrive\Desktop\Projects\Growth`
 - Use `uv run` for all Python commands
+
+## Session Log (2026-08-10)
+
+### v0.2 Sync Engine — COMPLETE ✅
+
+**Delivered:**
+1. [x] Installed `todoist-api-python` ✅
+2. [x] Replaced `TodoistAdapter` stub with real API adapter ✅
+3. [x] IdentityMap (InternalId ↔ Todoist resource ID) ✅
+4. [x] Differ — two-way snapshot diff → ChangeSet ✅
+5. [x] SyncEngine — orchestrates project → diff → apply → persist ✅
+6. [x] CLI: `growth sync todoist --dry-run` ✅
+7. [x] Kernel bootstrap: App now wires IdentityMap + init_sync_state ✅
+8. [x] Architecture: import-linter passes (3 contracts kept) ✅
+9. [x] .env: renamed TODOIST_API_TOKEN → GROWTH_TODOIST_API_TOKEN ✅
+
+**CI: ALL GREEN** — ruff ✅, mypy strict ✅ (54 files), import-linter ✅, pytest 87/87 ✅
+
+**Remaining for v0.2:**
+- Tests for IdentityMap, Differ, SyncEngine (0% coverage → need tests)
+- Three-way conflict detection (currently two-way diff)
+- Real Todoist API end-to-end test (needs live token)
+
+---
 
 ## Session Log (2026-08-02)
 

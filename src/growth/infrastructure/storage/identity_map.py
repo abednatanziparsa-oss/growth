@@ -41,12 +41,13 @@ def init_identity_map(db: sqlite3.Connection) -> None:
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS identity_map (
-            internal_id     TEXT PRIMARY KEY,
+            internal_id     TEXT NOT NULL,
             provider        TEXT NOT NULL,
             provider_resource_id TEXT NOT NULL,
             provider_resource_type TEXT NOT NULL,
             created_at      TEXT NOT NULL,
-            updated_at      TEXT NOT NULL
+            updated_at      TEXT NOT NULL,
+            PRIMARY KEY (internal_id, provider)
         )
         """
     )
@@ -88,7 +89,7 @@ class IdentityMap:
                 internal_id, provider, provider_resource_id,
                 provider_resource_type, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT (internal_id) DO UPDATE SET
+            ON CONFLICT (internal_id, provider) DO UPDATE SET
                 provider_resource_id = excluded.provider_resource_id,
                 provider_resource_type = excluded.provider_resource_type,
                 updated_at = excluded.updated_at
