@@ -220,3 +220,103 @@ class TestDifferNoOps:
 
         cs = d.diff(desired, base)
         assert len(cs.operations) == 0
+
+
+# ============================================================================
+# Three-way diff tests
+# ============================================================================
+
+
+class TestDifferThreeWay:
+    """Three-way diff with conflict detection."""
+
+    def test_three_way_first_sync(self) -> None:
+        d = Differ()
+        desired = _snap(project_name="Plan", sections=[], items=[])
+        cs = d.diff_three_way(desired, None, None)
+        assert len(cs.operations) == 1
+        assert cs.operations[0]["op"] == "create_project"
+
+    def test_three_way_no_remote_changes(self) -> None:
+        """No remote changes — three-way behaves like two-way."""
+        d = Differ()
+        desired = _snap(
+            project_name="P",
+            items=[{"content": "New Task"}],
+        )
+        base = _snap(root_id="p-1", tasks=[])
+
+        cs = d.diff_three_way(desired, base, None)
+        assert any(op["op"] == "create_task" for op in cs.operations)
+
+    def test_three_way_new_local_task_no_remote(self) -> None:
+        d = Differ()
+        desired = _snap(
+            project_name="P",
+            items=[{"content": "Only local"}],
+        )
+        base = _snap(root_id="p-1", tasks=[])
+        remote = _snap(root_id="p-1", tasks=[])
+
+        cs = d.diff_three_way(desired, base, remote)
+        create_ops = [op for op in cs.operations if op["op"] == "create_task"]
+        assert len(create_ops) == 1
+        assert create_ops[0]["content"] == "Only local"
+
+    def test_three_way_local_change_no_remote_conflict(self) -> None:
+        """Local priority changed, remote unchanged — apply local."""
+        d = Differ()
+        desired = _snap(
+            project_name="P",
+            items=[{"content": "Task A", "priority": 4}],
+        )
+        base = _snap(
+            root_id="p-1",
+            tasks=[{"content": "Task A", "priority": 1, "id": "t-1"}],
+        )
+        remote = _snap(
+            root_id="p-1",
+            tasks=[{"content": "Task A", "priority": 1, "id": "t-1"}],
+        )
+
+        cs = d.diff_three_way(desired, base, remote)
+        updates = [op for op in cs.operations if op["op"] == "update_task"]
+        assert len(updates) == 1
+        assert updates[0]["priority"] == 4
+
+    def test_three_way_remote_only_change_no_op(self) -> None:
+        """Remote changed priority, we didn't — keep remote (no-op)."""
+        d = Differ()
+        desired = _snap(
+            project_name="P",
+            items=[{"content": "Task A", "priority": 1}],
+        )
+        base = _snap(
+            root_id="p-1",
+            tasks=[{"content": "Task A", "priority": 1, "id": "t-1"}],
+        )
+        remote = _snap(
+            root_id="p-1",
+            tasks=[{"content": "Task A", "priority": 4, "id": "t-1"}],
+        )
+
+        cs = d.diff_three_way(desired, base, remote)
+        updates = [op for op in cs.operations if op["op"] == "update_task"]
+        assert len(updates) == 0
+
+    def test_three_way_local_delete_completes_remote(self) -> None:
+        d = Differ()
+        desired = _snap(project_name="P", items=[])
+        base = _snap(
+            root_id="p-1",
+            tasks=[{"content": "Remove me", "id": "t-rm"}],
+        )
+        remote = _snap(
+            root_id="p-1",
+            tasks=[{"content": "Remove me", "id": "t-rm"}],
+        )
+
+        cs = d.diff_three_way(desired, base, remote)
+        complete_ops = [op for op in cs.operations if op["op"] == "complete_task"]
+        assert len(complete_ops) == 1
+        assert complete_ops[0]["provider_id"] == "t-rm"
