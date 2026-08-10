@@ -155,6 +155,9 @@ def plan_stats() -> None:
 sync_app = typer.Typer(help="Synchronization commands.")
 app.add_typer(sync_app, name="sync")
 
+export_app = typer.Typer(help="Export commands.")
+app.add_typer(export_app, name="export")
+
 
 @sync_app.command(name="todoist")
 def sync_todoist(
@@ -271,6 +274,64 @@ def sync_todoist(
             typer.echo(f"  ! {e}", err=True)
     if ar.provider_ids:
         typer.echo(f"  Provider ids: {len(ar.provider_ids)} new mapping(s)")
+
+
+@export_app.command(name="markdown")
+def export_markdown(
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "-o", "--output",
+            help="Output file path. Prints to stdout if omitted.",
+        ),
+    ] = None,
+) -> None:
+    """Export the current plan as a Markdown document."""
+    from datetime import UTC, datetime
+
+    from growth.application.dtos import CanonicalPlan
+
+    app_ctx = build_app()
+
+    workspaces = app_ctx.workspace_repo.list_all()
+    if not workspaces:
+        typer.echo(
+            "[ERROR] No plan found. Run 'growth plan apply <file>' first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    ws = workspaces[0]
+    projects = app_ctx.project_repo.list_by_workspace(ws.id)
+    if not projects:
+        typer.echo(
+            "[ERROR] No project found. Run 'growth plan apply <file>' first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    project = projects[0]
+
+    # Reconstruct canonical plan from stored entities
+    now = datetime.now(UTC)
+    plan = CanonicalPlan(
+        space_id=ws.space_id,
+        created_at=now,
+        project_name=project.title,
+        raw_payload={
+            "project_name": project.title,
+            "subjects": [],
+            "standard_subtasks": [],
+        },
+    )
+
+    content = app_ctx.export_markdown(plan)
+
+    if output:
+        output.write_text(content, encoding="utf-8")
+        typer.echo(f"[OK] Exported to {output}")
+    else:
+        typer.echo(content)
 
 
 def run() -> None:

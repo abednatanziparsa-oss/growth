@@ -15,6 +15,7 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass, field
 
+from growth.application.dtos import CanonicalPlan
 from growth.application.plan_applier import PlanApplier
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.logging.setup import configure_logging
@@ -66,6 +67,16 @@ class App:
         projection = TodoistProjection()
         adapter = TodoistAdapter(token)
         return SyncEngine(projection, adapter, self.identity_map, self.db)
+
+    def export_markdown(self, plan: CanonicalPlan) -> str:
+        """Export a CanonicalPlan as a Markdown string."""
+        from growth.infrastructure.projections.markdown import (
+            MarkdownProjection,
+        )
+
+        projection = MarkdownProjection()
+        snapshot = projection.project(plan)
+        return str(snapshot.payload.get("content", ""))
 
 
 def build_app(settings: Settings | None = None) -> App:

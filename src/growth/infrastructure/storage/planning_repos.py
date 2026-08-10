@@ -192,11 +192,13 @@ class WorkspaceRepository(Repository[Workspace]):
                     str(entity.id.value),
                 ),
             )
+        self._db.commit()
 
     def delete(self, id: InternalId) -> None:
         cur = self._db.execute("DELETE FROM workspaces WHERE id = ?", (str(id.value),))
         if cur.rowcount == 0:
             raise EntityNotFoundError(f"Workspace {id} not found")
+        self._db.commit()
 
     def list_all(self) -> list[Workspace]:
         rows = self._db.execute(
@@ -269,11 +271,13 @@ class ProjectRepository(Repository[Project]):
                     str(entity.id.value),
                 ),
             )
+        self._db.commit()
 
     def delete(self, id: InternalId) -> None:
         cur = self._db.execute("DELETE FROM projects WHERE id = ?", (str(id.value),))
         if cur.rowcount == 0:
             raise EntityNotFoundError(f"Project {id} not found")
+        self._db.commit()
 
     def list_by_workspace(self, workspace_id: InternalId) -> list[Project]:
         rows = self._db.execute(
@@ -352,11 +356,13 @@ class GoalRepository(Repository[Goal]):
                     str(entity.id.value),
                 ),
             )
+        self._db.commit()
 
     def delete(self, id: InternalId) -> None:
         cur = self._db.execute("DELETE FROM goals WHERE id = ?", (str(id.value),))
         if cur.rowcount == 0:
             raise EntityNotFoundError(f"Goal {id} not found")
+        self._db.commit()
 
     def list_by_project(self, project_id: InternalId) -> list[Goal]:
         rows = self._db.execute(
@@ -435,11 +441,13 @@ class MilestoneRepository(Repository[Milestone]):
                     str(entity.id.value),
                 ),
             )
+        self._db.commit()
 
     def delete(self, id: InternalId) -> None:
         cur = self._db.execute("DELETE FROM milestones WHERE id = ?", (str(id.value),))
         if cur.rowcount == 0:
             raise EntityNotFoundError(f"Milestone {id} not found")
+        self._db.commit()
 
     def list_by_goal(self, goal_id: InternalId) -> list[Milestone]:
         rows = self._db.execute(
@@ -527,11 +535,13 @@ class TaskRepository(Repository[Task]):
                     str(entity.id.value),
                 ),
             )
+        self._db.commit()
 
     def delete(self, id: InternalId) -> None:
         cur = self._db.execute("DELETE FROM tasks WHERE id = ?", (str(id.value),))
         if cur.rowcount == 0:
             raise EntityNotFoundError(f"Task {id} not found")
+        self._db.commit()
 
     def list_top_level(self, space_id: SpaceId) -> list[Task]:
         rows = self._db.execute(
