@@ -158,6 +158,9 @@ app.add_typer(sync_app, name="sync")
 export_app = typer.Typer(help="Export commands.")
 app.add_typer(export_app, name="export")
 
+knowledge_app = typer.Typer(help="Knowledge management commands.")
+app.add_typer(knowledge_app, name="knowledge")
+
 
 @sync_app.command(name="todoist")
 def sync_todoist(
@@ -332,6 +335,106 @@ def export_markdown(
         typer.echo(f"[OK] Exported to {output}")
     else:
         typer.echo(content)
+
+
+@knowledge_app.command(name="attach")
+def knowledge_attach(
+    file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to the file to attach.",
+        ),
+    ],
+    target: Annotated[
+        str | None,
+        typer.Option(
+            "--task", "-t",
+            help="Task id to attach to (UUID).",
+        ),
+    ] = None,
+) -> None:
+    """Attach a file to a task (content-addressed, dedup)."""
+    from datetime import UTC, datetime
+
+    from growth.domain.knowledge import (
+        Attachment,
+        AttachmentKind,
+        AttachmentTarget,
+        content_hash,
+    )
+    from growth.domain.shared import DEFAULT_SPACE_ID, InternalId
+
+    app_ctx = build_app()
+
+    data = file.read_bytes()
+    h = content_hash(data)
+
+    existing = app_ctx.attachment_repo.find_by_hash(h)
+    if existing is not None:
+        typer.echo(f"[OK] Already attached: {existing.title} (id={existing.id})")
+        return
+
+    now = datetime.now(UTC)
+    attachment = Attachment(
+        space_id=DEFAULT_SPACE_ID,
+        kind=AttachmentKind.FILE,
+        target_type=AttachmentTarget.TASK,
+        target_id=InternalId.from_string(target) if target else None,
+        title=file.name,
+        content_hash=h,
+        mime_type=None,
+        source_ref=str(file.resolve()),
+        size_bytes=len(data),
+        created_at=now,
+        updated_at=now,
+    )
+    app_ctx.attachment_repo.save(attachment)
+    typer.echo(f"[OK] Attached {file.name} (id={attachment.id}, hash={h[:12]}…)")
+
+
+@knowledge_app.command(name="list")
+def knowledge_list() -> None:
+    """List all attachments in the current space."""
+    from growth.domain.shared import DEFAULT_SPACE_ID
+
+    app_ctx = build_app()
+    attachments = app_ctx.attachment_repo.list_by_space(DEFAULT_SPACE_ID)
+
+    if not attachments:
+        typer.echo("No attachments yet. Run 'growth knowledge attach <file>'.")
+        return
+
+    for a in attachments:
+        target = a.target_id.value if a.target_id else "(space)"
+        typer.echo(f"  {a.id}  {a.title}  -> {a.target_type.value}:{target}  ({a.size_bytes or 0} B)")
+
+
+@knowledge_app.command(name="search")
+def knowledge_search(
+    query: Annotated[
+        str,
+        typer.Argument(help="Free-text search query."),
+    ],
+) -> None:
+    """Search attachments by keyword (title + source path)."""
+    from growth.domain.shared import DEFAULT_SPACE_ID
+
+    app_ctx = build_app()
+    hits = app_ctx.knowledge_search.search(query, space_id=DEFAULT_SPACE_ID)
+
+    if not hits:
+        typer.echo(f"No results for {query!r}.")
+        return
+
+    for hit in hits:
+        a = hit.attachment
+        typer.echo(f"  [{hit.score:.1f}] {a.title}  ({a.id})")
+        if hit.snippet:
+            typer.echo(f"        {hit.snippet}")
 
 
 def run() -> None:

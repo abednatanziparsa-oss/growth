@@ -23,6 +23,11 @@ from growth.infrastructure.storage.identity_map import (
     IdentityMap,
     init_identity_map,
 )
+from growth.infrastructure.storage.knowledge_repos import (
+    AttachmentRepository,
+    KeywordSearch,
+    init_knowledge_db,
+)
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
     MilestoneRepository,
@@ -83,6 +88,8 @@ class _SharedDbAppFactory:
                     TaskRepository(db),
                 ),
                 identity_map=IdentityMap(db),
+                attachment_repo=AttachmentRepository(db),
+                knowledge_search=KeywordSearch(db),
             )
 
         # First invocation — create everything.
@@ -96,6 +103,7 @@ class _SharedDbAppFactory:
         init_db(db)
         init_identity_map(db)
         init_sync_state(db)
+        init_knowledge_db(db)
         self._db = db
 
         self._app = App(
@@ -115,6 +123,8 @@ class _SharedDbAppFactory:
                 TaskRepository(db),
             ),
             identity_map=IdentityMap(db),
+            attachment_repo=AttachmentRepository(db),
+            knowledge_search=KeywordSearch(db),
         )
         return self._app
 

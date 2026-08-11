@@ -23,6 +23,11 @@ from growth.infrastructure.storage.identity_map import (
     IdentityMap,
     init_identity_map,
 )
+from growth.infrastructure.storage.knowledge_repos import (
+    AttachmentRepository,
+    KeywordSearch,
+    init_knowledge_db,
+)
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
     MilestoneRepository,
@@ -51,6 +56,8 @@ class App:
     task_repo: TaskRepository = field(repr=False)
     plan_applier: PlanApplier = field(repr=False)
     identity_map: IdentityMap = field(repr=False)
+    attachment_repo: AttachmentRepository = field(repr=False)
+    knowledge_search: KeywordSearch = field(repr=False)
 
     @property
     def sync_engine(self) -> SyncEngine | None:
@@ -99,6 +106,7 @@ def build_app(settings: Settings | None = None) -> App:
     init_db(db)
     init_identity_map(db)
     init_sync_state(db)
+    init_knowledge_db(db)
 
     workspace_repo = WorkspaceRepository(db)
     project_repo = ProjectRepository(db)
@@ -106,6 +114,8 @@ def build_app(settings: Settings | None = None) -> App:
     milestone_repo = MilestoneRepository(db)
     task_repo = TaskRepository(db)
     identity_map = IdentityMap(db)
+    attachment_repo = AttachmentRepository(db)
+    knowledge_search = KeywordSearch(db)
 
     plan_applier = PlanApplier(
         workspace_repo, project_repo, goal_repo, milestone_repo, task_repo
@@ -122,4 +132,6 @@ def build_app(settings: Settings | None = None) -> App:
         task_repo=task_repo,
         plan_applier=plan_applier,
         identity_map=identity_map,
+        attachment_repo=attachment_repo,
+        knowledge_search=knowledge_search,
     )
