@@ -29,9 +29,9 @@
 ## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (346 passed, 0 failed)
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (347 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 33 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 34 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -48,6 +48,7 @@
 - **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch + **SemanticSearch** (offline n-gram embeddings, typo-tolerant) — **99%/95%**
 - **Embeddings port** (v0.4): `LocalNGramEmbedder` (deterministic char n-gram hashing, 256-dim, zero deps) — **100%**
 - **Reminders + scheduling engine** (v0.5, partial): Reminder aggregate + status lifecycle + `ReminderDue` event; SQLite `ReminderRepository` with recurrence JSON column + legacy migration; `RecurrenceRule` (daily/weekly/monthly, interval, until, count); `Scheduler.sweep()` fires due reminders, dispatches events, re-arms recurring series with failure isolation; CLI `reminder add --repeat/--interval/--until/--count`, `reminder list/due/fire/sweep` — all **100%**
+- **TodoistAdapter SDK 4.0 conformance** (v0.2 hardening): verified every adapter call against installed todoist-api-python 4.0.0 signatures; fixed `is_completed` bug (SDK Task model has `completed_at`, not `is_completed`); added live-API E2E harness (`tests/integration/test_todoist_e2e.py`, skipped without `GROWTH_TODOIST_API_TOKEN`, unique project + delete-in-finally cleanup)
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -158,6 +159,13 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 ---
 
 ## Session Log (2026-08-12) — v0.4 completion
+## Session Log (2026-08-12) — Todoist SDK 4.0 hardening
+
+- [x] Verified TodoistAdapter against installed SDK 4.0.0 (add_task/update_task/complete_task/get_tasks iterator all match) ✅
+- [x] **BUGFIX: `is_completed` AttributeError** — SDK 4.x Task has `completed_at`, not `is_completed`; adapter now maps `completed_at is not None` + test covers done/open states ✅
+- [x] E2E harness `tests/integration/test_todoist_e2e.py` (skipped w/o token; unique project + finally-cleanup) ✅
+- [x] Lint cleanup for ruff 0.15 (zip strict, PLC0415, F841, B017, ARG005) ✅
+- CI: 347 passed, coverage 98% ✅
 
 ### Semantic Search — COMPLETE ✅ (v0.4 done)
 
