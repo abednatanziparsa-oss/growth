@@ -22,6 +22,10 @@ from growth.infrastructure.storage.knowledge_repos import (
     init_knowledge_db,
 )
 from growth.infrastructure.storage.plan_store import PlanStore, init_plan_store
+from growth.infrastructure.storage.reminder_repos import (
+    ReminderRepository,
+    init_reminder_db,
+)
 from growth.infrastructure.storage.semantic_search import SemanticSearch
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
@@ -81,6 +85,7 @@ class SharedDbAppFactory:
                 knowledge_search=KeywordSearch(db),
                 semantic_search=SemanticSearch(db),
                 plan_store=self._app.plan_store,
+                reminder_repo=self._app.reminder_repo,
             )
 
         settings = self._settings or Settings()
@@ -95,9 +100,11 @@ class SharedDbAppFactory:
         init_sync_state(db)
         init_knowledge_db(db)
         init_plan_store(db)
+        init_reminder_db(db)
         self._db = db
 
         plan_store = PlanStore(db)
+        reminder_repo = ReminderRepository(db)
 
         self._app = App(
             settings=settings,
@@ -121,6 +128,7 @@ class SharedDbAppFactory:
             knowledge_search=KeywordSearch(db),
             semantic_search=SemanticSearch(db),
             plan_store=plan_store,
+            reminder_repo=reminder_repo,
         )
         return self._app
 

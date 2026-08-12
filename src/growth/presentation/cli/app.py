@@ -162,6 +162,9 @@ app.add_typer(export_app, name="export")
 knowledge_app = typer.Typer(help="Knowledge management commands.")
 app.add_typer(knowledge_app, name="knowledge")
 
+reminder_app = typer.Typer(help="Reminder management commands.")
+app.add_typer(reminder_app, name="reminder")
+
 
 def _current_plan(app_ctx: App) -> CanonicalPlan | None:
     """Return the latest applied plan for the default space.
@@ -438,6 +441,153 @@ def knowledge_search(
         typer.echo(f"  [{hit.score:.1f}] {a.title}  ({a.id})")
         if hit.snippet:
             typer.echo(f"        {hit.snippet}")
+
+
+@reminder_app.command(name="add")
+def reminder_add(
+    title: Annotated[
+        str,
+        typer.Argument(help="Reminder title."),
+    ],
+    at: Annotated[
+        str,
+        typer.Option(
+            "--at",
+            help="Due time (ISO-8601, e.g. 2026-08-13 09:00). Naive times are UTC.",
+        ),
+    ],
+    task: Annotated[
+        str | None,
+        typer.Option(
+            "--task",
+            help="Task id (UUID) this reminder is attached to.",
+        ),
+    ] = None,
+) -> None:
+    """Create a reminder."""
+    from datetime import UTC, datetime
+
+    from growth.domain.reminders import Reminder, ReminderTarget
+    from growth.domain.shared import DEFAULT_SPACE_ID, InternalId
+
+    try:
+        due_at = datetime.fromisoformat(at)
+    except ValueError:
+        typer.echo(
+            f"[ERROR] Invalid --at value {at!r}. Use ISO-8601, e.g. 2026-08-13 09:00.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+    if due_at.tzinfo is None:
+        due_at = due_at.replace(tzinfo=UTC)
+
+    app_ctx = build_app()
+    repo = app_ctx.reminder_repo
+    if repo is None:
+        typer.echo("[ERROR] Reminders are not available.", err=True)
+        raise typer.Exit(code=1)
+
+    now = datetime.now(UTC)
+    target_id = InternalId.from_string(task) if task else None
+    reminder = Reminder(
+        id=InternalId(),
+        space_id=DEFAULT_SPACE_ID,
+        title=title,
+        due_at=due_at,
+        target_type=ReminderTarget.TASK if target_id else ReminderTarget.SPACE,
+        target_id=target_id,
+        created_at=now,
+        updated_at=now,
+    )
+    repo.save(reminder)
+    typer.echo(f"[OK] Reminder created (id={reminder.id}, due={due_at.isoformat()})")
+
+
+@reminder_app.command(name="list")
+def reminder_list() -> None:
+    """List all reminders in the current space."""
+    from growth.domain.shared import DEFAULT_SPACE_ID
+
+    app_ctx = build_app()
+    repo = app_ctx.reminder_repo
+    if repo is None:
+        typer.echo("[ERROR] Reminders are not available.", err=True)
+        raise typer.Exit(code=1)
+
+    reminders = repo.list_by_space(DEFAULT_SPACE_ID)
+    if not reminders:
+        typer.echo("No reminders yet. Run 'growth reminder add <title> --at <time>'.")
+        return
+
+    for r in reminders:
+        target = r.target_id.value if r.target_id else "(space)"
+        icon = {
+            "pending": "⏳",
+            "fired": "✅",
+            "dismissed": "🚫",
+            "cancelled": "❌",
+        }[r.status.value]
+        typer.echo(
+            f"  {icon} {r.id}  {r.title}  @ {r.due_at.isoformat()}  "
+            f"-> {r.target_type.value}:{target}  ({r.status.value})"
+        )
+
+
+@reminder_app.command(name="due")
+def reminder_due() -> None:
+    """List pending reminders whose due time has passed."""
+    from datetime import UTC, datetime
+
+    from growth.domain.shared import DEFAULT_SPACE_ID
+
+    app_ctx = build_app()
+    repo = app_ctx.reminder_repo
+    if repo is None:
+        typer.echo("[ERROR] Reminders are not available.", err=True)
+        raise typer.Exit(code=1)
+
+    due = repo.list_due(DEFAULT_SPACE_ID, datetime.now(UTC))
+    if not due:
+        typer.echo("No due reminders. 🎉")
+        return
+
+    for r in due:
+        typer.echo(f"  ⏰ {r.id}  {r.title}  (due {r.due_at.isoformat()})")
+    typer.echo(
+        f"\n{len(due)} reminder(s) due — 'growth reminder fire <id>' to mark fired."
+    )
+
+
+@reminder_app.command(name="fire")
+def reminder_fire(
+    reminder_id: Annotated[
+        str,
+        typer.Argument(help="Reminder id (UUID)."),
+    ],
+) -> None:
+    """Mark a reminder as fired."""
+    from datetime import UTC, datetime
+
+    from growth.application.ports.repository import EntityNotFoundError
+    from growth.domain.reminders import ReminderStatus
+    from growth.domain.shared import InternalId
+
+    app_ctx = build_app()
+    repo = app_ctx.reminder_repo
+    if repo is None:
+        typer.echo("[ERROR] Reminders are not available.", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        reminder = repo.get(InternalId.from_string(reminder_id))
+    except (ValueError, EntityNotFoundError) as exc:
+        typer.echo(f"[ERROR] {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    reminder.status = ReminderStatus.FIRED
+    reminder.updated_at = datetime.now(UTC)
+    repo.save(reminder)
+    typer.echo(f"[OK] Reminder fired: {reminder.title}")
 
 
 def run() -> None:
