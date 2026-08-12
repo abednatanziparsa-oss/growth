@@ -29,9 +29,9 @@
 ## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (256 passed, 0 failed)
-- Coverage: **98%** (1496 statements, 14 missed)
-- Git: 27 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (278 passed, 0 failed)
+- Coverage: **98%** (1610 statements, 16 missed)
+- Git: 29 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -45,7 +45,8 @@
 - Differ: two-way + **three-way diff with conflict detection** (v0.2.1) — **96%**
 - SyncEngine: project → diff → apply → persist — **98%**
 - **MarkdownProjection + `export markdown`** (v0.3) — **100%**
-- **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch — **99%**
+- **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch + **SemanticSearch** (offline n-gram embeddings, typo-tolerant) — **99%/95%**
+- **Embeddings port** (v0.4): `LocalNGramEmbedder` (deterministic char n-gram hashing, 256-dim, zero deps) — **100%**
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -56,6 +57,8 @@
 | File | Coverage |
 |---|---|
 | `plan_store.py` (new) | 100% |
+| `embeddings/local.py` (new) | 100% |
+| `storage/semantic_search.py` (new) | 95% |
 | `plan_applier.py` | 100% |
 | `projections/markdown.py` | 100% |
 | `projections/todoist.py` | 100% (fixed private-attr bug) |
@@ -70,7 +73,7 @@
 | **Total** | **98%** |
 
 ### What's NOT Yet Built (v0.4 → v1.0)
-- Knowledge substrate: **embeddings + semantic search** (completes v0.4) ← **next**
+- v0.5: **reminders, scheduling, Google Calendar** ← **next**
 - Reminders, scheduling, Google Calendar (v0.5)
 - AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
 - DecisionEngine, WorkflowEngine (v0.7)
@@ -146,9 +149,27 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 **CI: ALL GREEN** — ruff ✅, mypy strict ✅ (59 files), import-linter ✅ (3 contracts), pytest 256/256 ✅, coverage **98%**.
 
 **Next:**
-- v0.4 completion: embeddings + semantic search (KnowledgeSearch port has a seam for it)
-- v0.5: reminders, scheduling, Google Calendar
+- v0.5: reminders, scheduling, Google Calendar ← **next**
 - Real Todoist end-to-end test (needs live token)
+
+---
+
+## Session Log (2026-08-12) — v0.4 completion
+
+### Semantic Search — COMPLETE ✅ (v0.4 done)
+
+Parsa: «ادامه بده» — resumed immediately after the test sweep; no stop.
+
+**Delivered:**
+1. [x] **Embeddings port** (`application/ports/embeddings.py`) — seam for model-backed embedders in v0.6 ✅
+2. [x] **LocalNGramEmbedder** (`infrastructure/embeddings/local.py`) — deterministic md5 char n-gram (2-4) hashing, 256-dim L2-normalized, sign trick; zero deps, offline ✅
+3. [x] **SemanticSearch** (`infrastructure/storage/semantic_search.py`) — implements `KnowledgeSearch` port; cosine similarity + exact-keyword boost; MIN_SIM_SCORE=10 filters hash-collision noise (measured: noise ~0.07 sim vs real matches 0.47+); typo-tolerant (`roadmapp` → finds `roadmap`) ✅
+4. [x] `App.semantic_search` wired in bootstrap; CLI `knowledge search --semantic` + unavailable-path error ✅
+5. [x] Tests: embedder determinism/L2/typo, cosine, SemanticSearch ranking/space/limit/snippet, CLI flag (256 → **278 tests**) ✅
+
+**CI: ALL GREEN** — ruff ✅, mypy strict ✅, import-linter ✅ (3 contracts), pytest 278/278 ✅, coverage **98%**.
+
+**v0.4 = COMPLETE ✅** — knowledge substrate ships: attachments (content-addressed dedup) + keyword search + offline semantic search.
 
 ---
 
