@@ -243,4 +243,6 @@ class SyncEngine:
                         resource_type = "task"
                     break
 
-            self._identity_map.put(internal_id, provider, provider_resource_id, resource_type)
+            self._identity_map.put(
+                internal_id, provider, provider_resource_id, resource_type
+            )

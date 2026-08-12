@@ -131,14 +131,20 @@ class TodoistAdapter:
 
         handlers: dict[str, Any] = {
             "create_project": lambda: self._api.add_project(name=op["name"]).id,
-            "create_section": lambda: self._api.add_section(
-                name=op["name"], project_id=op["project_id"]
-            ).id,
+            "create_section": lambda: (
+                self._api.add_section(name=op["name"], project_id=op["project_id"]).id
+            ),
             "create_task": lambda: self._create_task(op),
             "complete_task": lambda: self._api.complete_task(task_id=op["provider_id"]),
-            "update_task": lambda: self._api.update_task(task_id=op["provider_id"], content=op["content"]),
-            "delete_project": lambda: self._api.delete_project(project_id=op["provider_id"]),
-            "delete_section": lambda: self._api.delete_section(section_id=op["provider_id"]),
+            "update_task": lambda: self._api.update_task(
+                task_id=op["provider_id"], content=op["content"]
+            ),
+            "delete_project": lambda: self._api.delete_project(
+                project_id=op["provider_id"]
+            ),
+            "delete_section": lambda: self._api.delete_section(
+                section_id=op["provider_id"]
+            ),
         }
 
         handler = handlers.get(action)

@@ -34,6 +34,7 @@ coverage.xml
 .env
 .env.local
 .env.production
+Compsio.env
 
 # --- Operating system -------------------------------------------------------
 .DS_Store

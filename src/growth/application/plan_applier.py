@@ -51,12 +51,14 @@ class PlanApplier:
         goal_repo: Any,
         milestone_repo: Any,
         task_repo: Any,
+        plan_store: Any | None = None,
     ) -> None:
         self._workspace_repo = workspace_repo
         self._project_repo = project_repo
         self._goal_repo = goal_repo
         self._milestone_repo = milestone_repo
         self._task_repo = task_repo
+        self._plan_store = plan_store
 
     def apply(self, source_path: Path, space_id: SpaceId | None = None) -> Workspace:
         space = space_id or DEFAULT_SPACE_ID
@@ -162,5 +164,10 @@ class PlanApplier:
                 updated_at=now,
             )
             self._goal_repo.save(goal)
+
+        # Persist the raw plan so export/sync can reconstruct the
+        # CanonicalPlan faithfully (entities lose emoji/weak/templates).
+        if self._plan_store is not None:
+            self._plan_store.save(space, ws_name, payload, now)
 
         return workspace

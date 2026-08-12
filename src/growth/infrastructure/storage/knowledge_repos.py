@@ -70,9 +70,7 @@ def _row_to_attachment(row: sqlite3.Row) -> Attachment:
         space_id=SpaceId(UUID(row["space_id"])),
         kind=AttachmentKind(row["kind"]),
         target_type=AttachmentTarget(row["target_type"]),
-        target_id=InternalId(UUID(row["target_id"]))
-        if row["target_id"]
-        else None,
+        target_id=InternalId(UUID(row["target_id"])) if row["target_id"] else None,
         title=row["title"],
         content_hash=row["content_hash"],
         mime_type=row["mime_type"],
@@ -154,9 +152,7 @@ class AttachmentRepository:
         self._db.commit()
 
     def delete(self, id: InternalId) -> None:
-        cur = self._db.execute(
-            "DELETE FROM attachments WHERE id = ?", (str(id.value),)
-        )
+        cur = self._db.execute("DELETE FROM attachments WHERE id = ?", (str(id.value),))
         if cur.rowcount == 0:
             raise EntityNotFoundError(f"Attachment {id} not found")
         self._db.commit()
@@ -242,7 +238,9 @@ class KeywordSearch:
             attachment = _row_to_attachment(row)
             snippet = self._make_snippet(attachment, terms)
             score = self._score(attachment, terms)
-            hits.append(KeywordSearchHit(attachment=attachment, snippet=snippet, score=score))
+            hits.append(
+                KeywordSearchHit(attachment=attachment, snippet=snippet, score=score)
+            )
 
         # Stable sort by score desc
         hits.sort(key=lambda h: h.score, reverse=True)

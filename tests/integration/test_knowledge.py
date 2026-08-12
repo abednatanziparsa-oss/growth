@@ -241,7 +241,9 @@ class TestKeywordSearch:
         search = KeywordSearch(db)
 
         # Only matches in source_ref -> 1.0
-        repo.save(_attach(title="something", source_ref="/data/alpha.pdf", content=b"aaa"))
+        repo.save(
+            _attach(title="something", source_ref="/data/alpha.pdf", content=b"aaa")
+        )
         # Only matches in title -> 2.0 (should rank first)
         repo.save(_attach(title="beta alpha", source_ref="/other", content=b"bbb"))
 

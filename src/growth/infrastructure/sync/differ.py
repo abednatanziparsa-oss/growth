@@ -90,10 +90,16 @@ class Differ:
                 {
                     "op": "create_task",
                     "content": item["content"],
-                    "section_id": f"__SECTION_{self._section_index(sections, section_name)}__" if section_name else None,
+                    "section_id": f"__SECTION_{self._section_index(sections, section_name)}__"
+                    if section_name
+                    else None,
                     "priority": item.get("priority", 1),
                     "subtasks": [
-                        {"op": "create_task", "content": st, "priority": item.get("priority", 1)}
+                        {
+                            "op": "create_task",
+                            "content": st,
+                            "priority": item.get("priority", 1),
+                        }
                         for st in item.get("subtasks", [])
                     ],
                 }
@@ -326,7 +332,13 @@ class Differ:
         for name, _ds in desired_secs.items():
             if name not in base_secs and name not in remote_secs:
                 # Neither side has it — safe to create
-                ops.append({"op": "create_section", "name": name, "project_id": base.root_id or ""})
+                ops.append(
+                    {
+                        "op": "create_section",
+                        "name": name,
+                        "project_id": base.root_id or "",
+                    }
+                )
 
         # Sections removed in desired (in base but not desired)
         for name, bs in base_secs.items():
@@ -363,16 +375,18 @@ class Differ:
                 # New task — not in base
                 if rt is None:
                     # Also not on remote — safe to create
-                    ops.append({
-                        "op": "create_task",
-                        "content": item["content"],
-                        "project_id": base.root_id or "",
-                        "priority": item.get("priority", 1),
-                        "subtasks": [
-                            {"op": "create_task", "content": st}
-                            for st in item.get("subtasks", [])
-                        ],
-                    })
+                    ops.append(
+                        {
+                            "op": "create_task",
+                            "content": item["content"],
+                            "project_id": base.root_id or "",
+                            "priority": item.get("priority", 1),
+                            "subtasks": [
+                                {"op": "create_task", "content": st}
+                                for st in item.get("subtasks", [])
+                            ],
+                        }
+                    )
                 # Else: task exists on remote but not in base — someone
                 # created it outside Growth. Merge: keep remote task, update
                 # only non-conflicting fields.
@@ -381,16 +395,18 @@ class Differ:
             # Task exists in base
             if rt is None:
                 # Remote deleted it — we can recreate
-                ops.append({
-                    "op": "create_task",
-                    "content": item["content"],
-                    "project_id": base.root_id or "",
-                    "priority": item.get("priority", 1),
-                    "subtasks": [
-                        {"op": "create_task", "content": st}
-                        for st in item.get("subtasks", [])
-                    ],
-                })
+                ops.append(
+                    {
+                        "op": "create_task",
+                        "content": item["content"],
+                        "project_id": base.root_id or "",
+                        "priority": item.get("priority", 1),
+                        "subtasks": [
+                            {"op": "create_task", "content": st}
+                            for st in item.get("subtasks", [])
+                        ],
+                    }
+                )
                 continue
 
             # Both local and remote may have changed — three-way logic
@@ -401,12 +417,16 @@ class Differ:
                 # Both sides changed — detect field-level conflicts
                 changes = self._merge_non_conflicting(item, bt, rt)
                 if changes and rt.get("id"):
-                    ops.append({"op": "update_task", "provider_id": rt["id"], **changes})
+                    ops.append(
+                        {"op": "update_task", "provider_id": rt["id"], **changes}
+                    )
             elif local_changed:
                 # Only we changed — safe to apply
                 changes = self._task_field_diff(item, bt)
                 if changes and rt.get("id"):
-                    ops.append({"op": "update_task", "provider_id": rt["id"], **changes})
+                    ops.append(
+                        {"op": "update_task", "provider_id": rt["id"], **changes}
+                    )
             # Remote-only changes: keep remote state (no-op for us)
 
         # Tasks in base but not in desired — complete them (if not already remote-completed)
@@ -423,19 +443,18 @@ class Differ:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _task_changed(
-        local_item: dict[str, Any], base_task: dict[str, Any]
-    ) -> bool:
+    def _task_changed(local_item: dict[str, Any], base_task: dict[str, Any]) -> bool:
         """Check if a task has changed from base."""
         return bool(
-            (local_item.get("priority") and local_item["priority"] != base_task.get("priority"))
+            (
+                local_item.get("priority")
+                and local_item["priority"] != base_task.get("priority")
+            )
             or local_item.get("section") != base_task.get("section")
         )
 
     @staticmethod
-    def _task_field_diff(
-        local: dict[str, Any], base: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _task_field_diff(local: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
         """Compute field-level diff: local vs base."""
         changes: dict[str, Any] = {}
         if local.get("priority") and local["priority"] != base.get("priority"):

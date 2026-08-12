@@ -29,12 +29,12 @@ class TodoistProjection:
 
     def project(self, plan: CanonicalPlan) -> ProviderSnapshot:
         payload: dict[str, Any] = {
-            "project_name": getattr(plan, "_project_name", "Growth Plan"),
+            "project_name": plan.project_name or "Growth Plan",
             "sections": [],
             "items": [],
         }
 
-        raw: dict[str, Any] = getattr(plan, "_raw_payload", {})
+        raw: dict[str, Any] = plan.raw_payload or {}
         if raw:
             payload["sections"] = self._build_sections(raw)
             payload["items"] = self._build_items(raw)

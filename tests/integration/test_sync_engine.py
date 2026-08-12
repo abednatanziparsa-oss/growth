@@ -51,9 +51,7 @@ class _RichProjection:
             payload={
                 "project_name": plan.project_name,
                 "sections": [{"name": "Section A"}],
-                "items": [
-                    {"content": "Task 1", "priority": 3, "subtasks": []}
-                ],
+                "items": [{"content": "Task 1", "priority": 3, "subtasks": []}],
             },
         )
 
@@ -195,9 +193,7 @@ class TestSyncEngineBasePersistence:
 
     def test_no_base_for_unknown_provider(self) -> None:
         db = _new_db()
-        engine = SyncEngine(
-            _StubProjection(), _StubAdapter(), IdentityMap(db), db
-        )
+        engine = SyncEngine(_StubProjection(), _StubAdapter(), IdentityMap(db), db)
 
         base = engine._load_base("nonexistent")
         assert base is None
@@ -208,9 +204,7 @@ class TestSyncEngineResult:
 
     def test_empty_sync_result_shape(self) -> None:
         db = _new_db()
-        engine = SyncEngine(
-            _StubProjection(), _StubAdapter(), IdentityMap(db), db
-        )
+        engine = SyncEngine(_StubProjection(), _StubAdapter(), IdentityMap(db), db)
 
         result = engine.sync(_make_plan())
 

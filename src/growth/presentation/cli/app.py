@@ -20,8 +20,9 @@ from typing import Annotated
 import typer
 
 from growth import __version__
+from growth.application.dtos import CanonicalPlan
 from growth.domain.shared import DEFAULT_SPACE_ID
-from growth.kernel.bootstrap import build_app
+from growth.kernel.bootstrap import App, build_app
 
 __all__ = ["app", "run", "version_callback"]
 
@@ -162,6 +163,46 @@ knowledge_app = typer.Typer(help="Knowledge management commands.")
 app.add_typer(knowledge_app, name="knowledge")
 
 
+def _current_plan(app_ctx: App) -> CanonicalPlan | None:
+    """Return the latest applied plan for the default space.
+
+    Prefers the stored raw plan (faithful: subjects, emoji, weak flags,
+    subtask templates). Falls back to reconstructing a minimal plan from
+    the entity tree for databases created before the plan store existed.
+    """
+    from datetime import UTC, datetime
+
+    store = getattr(app_ctx, "plan_store", None)
+    if store is not None:
+        stored = store.latest(DEFAULT_SPACE_ID)
+        if stored is not None:
+            return CanonicalPlan(
+                space_id=stored.space_id,
+                created_at=stored.created_at,
+                project_name=stored.project_name,
+                raw_payload=stored.raw_payload,
+            )
+
+    workspaces = app_ctx.workspace_repo.list_all()
+    if not workspaces:
+        return None
+    ws = workspaces[0]
+    projects = app_ctx.project_repo.list_by_workspace(ws.id)
+    if not projects:
+        return None
+    project = projects[0]
+    return CanonicalPlan(
+        space_id=ws.space_id,
+        created_at=datetime.now(UTC),
+        project_name=project.title,
+        raw_payload={
+            "project_name": project.title,
+            "subjects": [],
+            "standard_subtasks": [],
+        },
+    )
+
+
 @sync_app.command(name="todoist")
 def sync_todoist(
     dry_run: Annotated[
@@ -180,10 +221,6 @@ def sync_todoist(
 
     Requires GROWTH_TODOIST_API_TOKEN (or TODOIST_API_TOKEN) to be set.
     """
-    from datetime import UTC, datetime
-
-    from growth.application.dtos import CanonicalPlan
-
     app_ctx = build_app()
     settings = app_ctx.settings
     api_token = settings.todoist_api_token
@@ -196,38 +233,14 @@ def sync_todoist(
         )
         raise typer.Exit(code=1)
 
-    # Load the latest project / plan from the DB
-    workspaces = app_ctx.workspace_repo.list_all()
-    if not workspaces:
+    # Load the latest plan (stored raw plan, or legacy reconstruction)
+    plan = _current_plan(app_ctx)
+    if plan is None:
         typer.echo(
             "[ERROR] No plan found. Run 'growth plan apply <file>' first.",
             err=True,
         )
         raise typer.Exit(code=1)
-
-    ws = workspaces[0]
-    projects = app_ctx.project_repo.list_by_workspace(ws.id)
-    if not projects:
-        typer.echo(
-            "[ERROR] No project found. Run 'growth plan apply <file>' first.",
-            err=True,
-        )
-        raise typer.Exit(code=1)
-
-    project = projects[0]
-
-    # Build a CanonicalPlan from the stored project
-    now = datetime.now(UTC)
-    plan = CanonicalPlan(
-        space_id=ws.space_id,
-        created_at=now,
-        project_name=project.title,
-        raw_payload={
-            "project_name": project.title,
-            "subjects": [],
-            "standard_subtasks": [],
-        },
-    )
 
     # Build sync pipeline via kernel-provided engine
     engine = app_ctx.sync_engine
@@ -241,9 +254,7 @@ def sync_todoist(
     # Project + diff — use the projection to generate the desired snapshot.
     # Access engine internals for dry-run visibility; real sync uses engine.sync().
     base = engine._load_base("todoist")
-    changeset = engine._differ.diff(
-        engine._projection.project(plan), base
-    )
+    changeset = engine._differ.diff(engine._projection.project(plan), base)
 
     typer.echo("Provider:   todoist")
     typer.echo(f"Project:    {plan.project_name}")
@@ -284,49 +295,22 @@ def export_markdown(
     output: Annotated[
         Path | None,
         typer.Option(
-            "-o", "--output",
+            "-o",
+            "--output",
             help="Output file path. Prints to stdout if omitted.",
         ),
     ] = None,
 ) -> None:
     """Export the current plan as a Markdown document."""
-    from datetime import UTC, datetime
-
-    from growth.application.dtos import CanonicalPlan
-
     app_ctx = build_app()
 
-    workspaces = app_ctx.workspace_repo.list_all()
-    if not workspaces:
+    plan = _current_plan(app_ctx)
+    if plan is None:
         typer.echo(
             "[ERROR] No plan found. Run 'growth plan apply <file>' first.",
             err=True,
         )
         raise typer.Exit(code=1)
-
-    ws = workspaces[0]
-    projects = app_ctx.project_repo.list_by_workspace(ws.id)
-    if not projects:
-        typer.echo(
-            "[ERROR] No project found. Run 'growth plan apply <file>' first.",
-            err=True,
-        )
-        raise typer.Exit(code=1)
-
-    project = projects[0]
-
-    # Reconstruct canonical plan from stored entities
-    now = datetime.now(UTC)
-    plan = CanonicalPlan(
-        space_id=ws.space_id,
-        created_at=now,
-        project_name=project.title,
-        raw_payload={
-            "project_name": project.title,
-            "subjects": [],
-            "standard_subtasks": [],
-        },
-    )
 
     content = app_ctx.export_markdown(plan)
 
@@ -352,7 +336,8 @@ def knowledge_attach(
     target: Annotated[
         str | None,
         typer.Option(
-            "--task", "-t",
+            "--task",
+            "-t",
             help="Task id to attach to (UUID).",
         ),
     ] = None,
@@ -410,7 +395,9 @@ def knowledge_list() -> None:
 
     for a in attachments:
         target = a.target_id.value if a.target_id else "(space)"
-        typer.echo(f"  {a.id}  {a.title}  -> {a.target_type.value}:{target}  ({a.size_bytes or 0} B)")
+        typer.echo(
+            f"  {a.id}  {a.title}  -> {a.target_type.value}:{target}  ({a.size_bytes or 0} B)"
+        )
 
 
 @knowledge_app.command(name="search")

@@ -1,4 +1,4 @@
-# MEMORY.md — Growth OS Long-Term Memory
+﻿# MEMORY.md — Growth OS Long-Term Memory
 
 ## Project Identity
 
@@ -26,47 +26,51 @@
 5. Every optional port has a Noop default — system runs offline by default
 6. YAGNI: plugin registry, real adapters, workflow scheduling, AI backends deferred
 
-## Current State (2026-08-10) — updated end of session
+## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (54 files), import-linter ✅ (3 kept), pytest ✅ (87 passed, 0 failed)
-- Coverage: **81%** (771 statements, 135 missed)
-- Git: 20 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (256 passed, 0 failed)
+- Coverage: **98%** (1496 statements, 14 missed)
+- Git: 27 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
-### What's Built (v0.1 → v0.2)
+### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
 - Domain events: WorkspaceCreated, ProjectCreated, GoalCreated, MilestoneCreated, TaskCreated, TaskCompleted
-- SQLite repos: file-based (~/.growth/growth.db), 5 repositories — **97% coverage**
+- SQLite repos: file-based (~/.growth/growth.db), 5 repositories — **95-97% coverage**
 - YAML parser + HeuristicInterpreter (RawPlan → CanonicalPlan) — **100% coverage**
-- Todoist projection (canonical→provider) + TodoistAdapter (REAL API, dry-run flag)
+- TodoistProjection (canonical→provider, p1-p4 + sections) + TodoistAdapter (REAL API, mocked-tested) — **100%**
 - PlanApplier: YAML → Workspace → Project → Goals → Milestones → Tasks — **100% coverage**
-- CLI: `growth plan apply/show/stats` + `growth sync todoist --dry-run` + `--version` — **97% coverage**
-- IdentityMap: InternalId ↔ provider resource id persistence in SQLite
-- Differ: two-way snapshot diff producing ChangeSet
-- SyncEngine: orchestrate project → diff → apply → persist
-- 10 application ports (all Protocols): AI, clock, decision, events, interpreter, parser, projection, adapter, repo, workflow
+- CLI: `plan apply/show/stats`, `sync todoist`, `export markdown`, `knowledge attach/list/search`, `--version` — **97%**
+- IdentityMap: InternalId ↔ provider resource id persistence — **100%**
+- Differ: two-way + **three-way diff with conflict detection** (v0.2.1) — **96%**
+- SyncEngine: project → diff → apply → persist — **98%**
+- **MarkdownProjection + `export markdown`** (v0.3) — **100%**
+- **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch — **99%**
+- **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
+- SyncEventDispatcher: pub/sub with failure isolation — **100%**
+- 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
 - Noop implementations for all optional ports
 
-### Coverage Detail (2026-08-02 end-of-session)
+### Coverage Detail (2026-08-12 end-of-session)
 
 | File | Coverage |
 |---|---|
-| `dtos.py` | 100% |
+| `plan_store.py` (new) | 100% |
 | `plan_applier.py` | 100% |
-| `ports/interpreter.py` | 100% |
-| `ports/parser.py` | 100% |
-| `planning_repos.py` | 97% |
+| `projections/markdown.py` | 100% |
+| `projections/todoist.py` | 100% (fixed private-attr bug) |
+| `adapters/todoist.py` | 100% (mocked) |
+| `sync/differ.py` | 96% |
+| `sync/engine.py` | 98% |
+| `storage/planning_repos.py` | 95% |
+| `storage/knowledge_repos.py` | 99% |
+| `kernel/bootstrap.py` | 100% |
 | `cli/app.py` | 97% |
-| `kernel/container.py` | 100% |
-| `yaml_parser.py` | 100% |
-| `heuristic.py` | 100% |
-| `TodoistProjection` + `TodoistAdapter` | 0% (dry-run, v0.2) |
-| **Total** | **81%** |
+| ports (incl. `knowledge.py`) | 100% |
+| **Total** | **98%** |
 
-### What's NOT Yet Built (v0.2 → v1.0)
-- Sync engine: three-way diff, IdentityMap, real Todoist API (v0.2) ← **next**
-- Markdown export (v0.3)
-- Knowledge substrate: attachments, embeddings, search (v0.4)
+### What's NOT Yet Built (v0.4 → v1.0)
+- Knowledge substrate: **embeddings + semantic search** (completes v0.4) ← **next**
 - Reminders, scheduling, Google Calendar (v0.5)
 - AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
 - DecisionEngine, WorkflowEngine (v0.7)
@@ -88,7 +92,7 @@
 
 1. **Token scopes limited** — `gh` token has `gist, read:org, repo` but no `workflow` or `delete_repo`. CI workflow push to a new repo would fail; rename/delete must be done from GitHub UI.
 2. **types-PyYAML** — not installed. mypy config suppresses import-untyped for yaml files.
-3. **Todoist adapter is stub** — real API integration deferred to v0.2.
+3. **Export/sync legacy fallback** — DBs created before PlanStore (v0.4.1) export header-only plans; re-run `plan apply` to persist the raw plan.
 
 ## Communication Notes
 
@@ -96,6 +100,8 @@
 - Address directly, no filler pleasantries
 - Project directory: `C:\Users\Notebook\OneDrive\Desktop\Projects\Growth`
 - Use `uv run` for all Python commands
+- **Status tables after turns:** When working on long multi-step coding tasks, end each turn with a Persian summary table (✅ انجام شده / 🔄 در حال انجام / ⏳ باقی‌مانده) showing what was completed, what's in progress, and what remains. This keeps Parsa oriented during long sessions without needing to scroll back.
+- **Resume work continuously (2026-08-12):** Parsa wants work to run end-to-end without piecemeal stops — do NOT ask "should I start?" between steps; pick up where the last session left off and push to completion (test → CI green → commit → push) in the same turn. Ask only when genuinely blocked on a decision.
 
 ## Session Log (2026-08-10)
 
@@ -114,10 +120,35 @@
 
 **CI: ALL GREEN** — ruff ✅, mypy strict ✅ (54 files), import-linter ✅, pytest 87/87 ✅
 
-**Remaining for v0.2:**
-- Tests for IdentityMap, Differ, SyncEngine (0% coverage → need tests)
-- Three-way conflict detection (currently two-way diff)
-- Real Todoist API end-to-end test (needs live token)
+**Remaining for v0.2 (as of 2026-08-12):**
+- Real Todoist API end-to-end test (needs live token) — everything else shipped in v0.2.1/v0.3/v0.4 + this session's test sweep
+
+---
+
+## Session Log (2026-08-12)
+
+### v0.3/v0.4 Test Sweep + Bugfixes — COMPLETE ✅
+
+Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops; resume and finish.
+
+**Delivered:**
+1. [x] Unit tests for MarkdownProjection + TodoistProjection (0% → **100%**) ✅
+2. [x] Unit tests for TodoistAdapter with mocked API (0% → **100%**) ✅
+3. [x] Differ branch tests: section moves, three-way conflict/merge/external-create/recreate (79% → **96%**) ✅
+4. [x] SyncEngine tests: root_id persistence, identity-map classification (67% → **98%**) ✅
+5. [x] CLI tests: export/knowledge/sync commands + `--version` (46% → **97%**) ✅
+6. [x] Bootstrap tests (44% → **100%**) + event dispatcher tests (48% → **100%**) ✅
+7. [x] Settings/logging/domain-id tests; ports/knowledge.py now covered (was 0%) ✅
+8. [x] **BUGFIX: TodoistProjection read legacy private attrs** (`_project_name`/`_raw_payload`) → `growth sync todoist` produced empty snapshots. Now reads public `project_name`/`raw_payload`. ✅
+9. [x] **BUGFIX: export/sync rebuilt plans with empty subjects** → header-only Markdown, no-op sync. Added **PlanStore** (raw plan persisted at apply time, `plans` table) + `App.plan_store` + CLI `_current_plan()` with legacy fallback. ✅
+10. [x] `ruff format` on 14 files; CI green; **coverage 67% → 98%** (256 tests) ✅
+
+**CI: ALL GREEN** — ruff ✅, mypy strict ✅ (59 files), import-linter ✅ (3 contracts), pytest 256/256 ✅, coverage **98%**.
+
+**Next:**
+- v0.4 completion: embeddings + semantic search (KnowledgeSearch port has a seam for it)
+- v0.5: reminders, scheduling, Google Calendar
+- Real Todoist end-to-end test (needs live token)
 
 ---
 
