@@ -5,9 +5,10 @@ notification tied to a target (space, task, or goal). Reminders are
 *fired* by the scheduling engine when ``due_at`` passes while the
 status is ``PENDING``; users may also dismiss or cancel them.
 
-The scheduling engine itself (recurrence, Google Calendar projection)
-lands later in v0.5; this module ships the aggregate, statuses, and the
-``ReminderDue`` event so persistence and CLI can be built now.
+The scheduling engine (``growth.application.scheduler``) advances
+recurring reminders using ``RecurrenceRule``; the Google Calendar
+projection lands later in v0.5. This module ships the aggregate,
+statuses, recurrence support, and the ``ReminderDue`` event.
 """
 
 from __future__ import annotations
@@ -16,9 +17,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
+from growth.domain.reminders.recurrence import (
+    RecurrenceFrequency,
+    RecurrenceRule,
+)
 from growth.domain.shared import InternalId, SpaceId
 
 __all__ = [
+    "RecurrenceFrequency",
+    "RecurrenceRule",
     "Reminder",
     "ReminderDue",
     "ReminderStatus",
@@ -60,10 +67,17 @@ class Reminder:
     target_type: ReminderTarget = ReminderTarget.SPACE
     target_id: InternalId | None = None
     status: ReminderStatus = ReminderStatus.PENDING
+    recurrence: RecurrenceRule | None = None
+    occurrences: int = 0
 
     def is_due(self, now: datetime) -> bool:
         """``True`` when the reminder should have fired already."""
         return self.status is ReminderStatus.PENDING and self.due_at <= now
+
+    @property
+    def is_recurring(self) -> bool:
+        """``True`` when this reminder re-arms itself after firing."""
+        return self.recurrence is not None
 
 
 @dataclass(frozen=True, slots=True)

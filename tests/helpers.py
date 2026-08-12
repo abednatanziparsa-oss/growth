@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 from typer.testing import CliRunner
 
 from growth.application.plan_applier import PlanApplier
+from growth.application.scheduler import Scheduler
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.logging.setup import configure_logging
 from growth.infrastructure.storage.identity_map import (
@@ -86,6 +87,11 @@ class SharedDbAppFactory:
                 semantic_search=SemanticSearch(db),
                 plan_store=self._app.plan_store,
                 reminder_repo=self._app.reminder_repo,
+                event_dispatcher=self._app.container.event_dispatcher,
+                scheduler=Scheduler(
+                    self._app.reminder_repo,  # type: ignore[arg-type]
+                    self._app.container.event_dispatcher,
+                ),
             )
 
         settings = self._settings or Settings()
@@ -129,6 +135,8 @@ class SharedDbAppFactory:
             semantic_search=SemanticSearch(db),
             plan_store=plan_store,
             reminder_repo=reminder_repo,
+            event_dispatcher=container.event_dispatcher,
+            scheduler=Scheduler(reminder_repo, container.event_dispatcher),
         )
         return self._app
 

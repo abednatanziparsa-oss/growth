@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime
 from uuid import UUID
 
 from growth.application.ports.repository import EntityNotFoundError
-from growth.domain.reminders import Reminder, ReminderStatus, ReminderTarget
+from growth.domain.reminders import (
+    RecurrenceFrequency,
+    RecurrenceRule,
+    Reminder,
+    ReminderStatus,
+    ReminderTarget,
+)
 from growth.domain.shared import InternalId, SpaceId
 
 __all__ = ["ReminderRepository", "init_reminder_db"]
 
 
 def init_reminder_db(db: sqlite3.Connection) -> None:
-    """Create the reminders table if missing."""
+    """Create the reminders table (and migrate older schemas)."""
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS reminders (
@@ -25,6 +32,8 @@ def init_reminder_db(db: sqlite3.Connection) -> None:
             target_id TEXT,
             due_at TEXT NOT NULL,
             status TEXT NOT NULL,
+            recurrence TEXT,
+            occurrences INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )
@@ -34,7 +43,43 @@ def init_reminder_db(db: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_reminders_due "
         "ON reminders (space_id, status, due_at)"
     )
+    # Migrate databases created before v0.5 added recurrence support.
+    cols = {row["name"] for row in db.execute("PRAGMA table_info(reminders)")}
+    if "recurrence" not in cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN recurrence TEXT")
+    if "occurrences" not in cols:
+        db.execute(
+            "ALTER TABLE reminders ADD COLUMN occurrences INTEGER NOT NULL DEFAULT 0"
+        )
     db.commit()
+
+
+def _rule_to_json(rule: RecurrenceRule | None) -> str | None:
+    """Serialize a recurrence rule to JSON (``None`` when absent)."""
+    if rule is None:
+        return None
+    return json.dumps(
+        {
+            "freq": rule.freq.value,
+            "interval": rule.interval,
+            "until": rule.until.isoformat() if rule.until else None,
+            "count": rule.count,
+        }
+    )
+
+
+def _json_to_rule(raw: str | None) -> RecurrenceRule | None:
+    """Parse a JSON recurrence rule (``None`` when absent)."""
+    if not raw:
+        return None
+    data = json.loads(raw)
+    until = datetime.fromisoformat(data["until"]) if data.get("until") else None
+    return RecurrenceRule(
+        freq=RecurrenceFrequency(data["freq"]),
+        interval=data.get("interval", 1),
+        until=until,
+        count=data.get("count"),
+    )
 
 
 def _row_to_reminder(row: sqlite3.Row) -> Reminder:
@@ -46,6 +91,8 @@ def _row_to_reminder(row: sqlite3.Row) -> Reminder:
         target_id=InternalId(UUID(row["target_id"])) if row["target_id"] else None,
         due_at=datetime.fromisoformat(row["due_at"]),
         status=ReminderStatus(row["status"]),
+        recurrence=_json_to_rule(row["recurrence"]),
+        occurrences=row["occurrences"] or 0,
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
     )
@@ -78,8 +125,8 @@ class ReminderRepository:
                 """
                 INSERT INTO reminders (
                     id, space_id, title, target_type, target_id,
-                    due_at, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    due_at, status, recurrence, occurrences, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(reminder.id.value),
@@ -89,6 +136,8 @@ class ReminderRepository:
                     str(reminder.target_id.value) if reminder.target_id else None,
                     reminder.due_at.isoformat(),
                     reminder.status.value,
+                    _rule_to_json(reminder.recurrence),
+                    reminder.occurrences,
                     reminder.created_at.isoformat(),
                     reminder.updated_at.isoformat(),
                 ),
@@ -97,7 +146,8 @@ class ReminderRepository:
             self._db.execute(
                 """
                 UPDATE reminders SET title=?, target_type=?, target_id=?,
-                   due_at=?, status=?, updated_at=? WHERE id=?
+                   due_at=?, status=?, recurrence=?, occurrences=?, updated_at=?
+                   WHERE id=?
                 """,
                 (
                     reminder.title,
@@ -105,6 +155,8 @@ class ReminderRepository:
                     str(reminder.target_id.value) if reminder.target_id else None,
                     reminder.due_at.isoformat(),
                     reminder.status.value,
+                    _rule_to_json(reminder.recurrence),
+                    reminder.occurrences,
                     reminder.updated_at.isoformat(),
                     str(reminder.id.value),
                 ),

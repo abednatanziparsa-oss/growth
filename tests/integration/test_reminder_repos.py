@@ -11,7 +11,12 @@ from growth.application.ports.reminders import (
     ReminderRepository as ReminderRepositoryPort,
 )
 from growth.application.ports.repository import EntityNotFoundError
-from growth.domain.reminders import Reminder, ReminderStatus, ReminderTarget
+from growth.domain.reminders import (
+    RecurrenceRule,
+    Reminder,
+    ReminderStatus,
+    ReminderTarget,
+)
 from growth.domain.shared import DEFAULT_SPACE_ID, InternalId, SpaceId
 from growth.infrastructure.storage.reminder_repos import (
     ReminderRepository,
@@ -33,6 +38,7 @@ def _reminder(
     status: ReminderStatus = ReminderStatus.PENDING,
     target: InternalId | None = None,
     space_id=DEFAULT_SPACE_ID,
+    recurrence: RecurrenceRule | None = None,
 ) -> Reminder:
     now = datetime(2026, 8, 12, 8, 0, tzinfo=UTC)
     return Reminder(
@@ -43,6 +49,7 @@ def _reminder(
         target_type=ReminderTarget.TASK if target else ReminderTarget.SPACE,
         target_id=target,
         status=status,
+        recurrence=recurrence,
         created_at=now,
         updated_at=now,
     )
@@ -175,3 +182,73 @@ class TestReminderRepository:
 
         assert got.target_type is ReminderTarget.TASK
         assert got.target_id == task_id
+
+    def test_recurrence_roundtrip(self) -> None:
+        from growth.domain.reminders import RecurrenceFrequency, RecurrenceRule
+
+        db = _new_db()
+        repo = ReminderRepository(db)
+        rule = RecurrenceRule(
+            freq=RecurrenceFrequency.WEEKLY,
+            interval=2,
+            until=datetime(2026, 12, 31, tzinfo=UTC),
+            count=10,
+        )
+        r = _reminder(title="recurring", recurrence=rule)
+
+        repo.save(r)
+        got = repo.get(r.id)
+
+        assert got.recurrence == rule
+        assert got.recurrence is not None
+        assert got.recurrence.freq is RecurrenceFrequency.WEEKLY
+        assert got.recurrence.interval == 2
+        assert got.recurrence.until == datetime(2026, 12, 31, tzinfo=UTC)
+        assert got.recurrence.count == 10
+
+    def test_recurrence_none_by_default(self) -> None:
+        db = _new_db()
+        repo = ReminderRepository(db)
+        r = _reminder()
+
+        repo.save(r)
+
+        assert repo.get(r.id).recurrence is None
+
+    def test_occurrences_persisted(self) -> None:
+        db = _new_db()
+        repo = ReminderRepository(db)
+        r = _reminder()
+        repo.save(r)
+
+        got = repo.get(r.id)
+        got.occurrences = 3
+        repo.save(got)
+
+        assert repo.get(r.id).occurrences == 3
+
+    def test_migrates_legacy_schema(self) -> None:
+        """A v0.5-pre DB (no recurrence/occurrences) gets ALTERed in place."""
+        db = sqlite3.connect(":memory:")
+        db.row_factory = sqlite3.Row
+        db.execute(
+            """
+            CREATE TABLE reminders (
+                id TEXT PRIMARY KEY,
+                space_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id TEXT,
+                due_at TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+        init_reminder_db(db)
+        cols = {row["name"] for row in db.execute("PRAGMA table_info(reminders)")}
+
+        assert "recurrence" in cols
+        assert "occurrences" in cols

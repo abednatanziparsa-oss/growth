@@ -66,6 +66,88 @@ class TestReminderAdd:
         assert result.exit_code == 1
         assert "Invalid --at value" in result.stderr
 
+    def test_add_recurring_daily(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        result = runner.invoke(
+            app,
+            [
+                "reminder",
+                "add",
+                "Daily pushup",
+                "--at",
+                "2026-08-13 07:00",
+                "--repeat",
+                "daily",
+                "--interval",
+                "2",
+                "--count",
+                "30",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "repeats daily every 2" in result.stdout
+
+    def test_add_recurring_invalid_repeat_errors(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        result = runner.invoke(
+            app,
+            ["reminder", "add", "X", "--at", "2026-08-13 07:00", "--repeat", "hourly"],
+        )
+
+        assert result.exit_code == 1
+        assert "Invalid --repeat" in result.stderr
+
+    def test_add_options_without_repeat_error(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        result = runner.invoke(
+            app,
+            ["reminder", "add", "X", "--at", "2026-08-13 07:00", "--count", "3"],
+        )
+
+        assert result.exit_code == 1
+        assert "require --repeat" in result.stderr
+
+    def test_add_invalid_until_errors(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        result = runner.invoke(
+            app,
+            [
+                "reminder",
+                "add",
+                "X",
+                "--at",
+                "2026-08-13 07:00",
+                "--repeat",
+                "daily",
+                "--until",
+                "nope",
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "Invalid --until" in result.stderr
+
+    def test_add_invalid_count_errors(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        result = runner.invoke(
+            app,
+            [
+                "reminder",
+                "add",
+                "X",
+                "--at",
+                "2026-08-13 07:00",
+                "--repeat",
+                "daily",
+                "--count",
+                "0",
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "count must be >= 1" in result.stderr
+
 
 class TestReminderList:
     def test_list_empty(self, monkeypatch) -> None:
@@ -141,3 +223,48 @@ class TestReminderFire:
 
         assert result.exit_code == 1
         assert "[ERROR]" in result.stderr
+
+
+class TestReminderSweep:
+    def test_sweep_with_no_due(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        result = runner.invoke(app, ["reminder", "sweep"])
+
+        assert result.exit_code == 0
+        assert "No due reminders" in result.stdout
+
+    def test_sweep_fires_due(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        runner.invoke(app, ["reminder", "add", "Past due", "--at", "2020-01-01 09:00"])
+
+        result = runner.invoke(app, ["reminder", "sweep"])
+
+        assert result.exit_code == 0
+        assert "Past due" in result.stdout
+        assert "1 fired, 0 rescheduled" in result.stdout
+        after = runner.invoke(app, ["reminder", "list"])
+        assert "fired" in after.stdout
+
+    def test_sweep_reschedules_recurring(self, monkeypatch) -> None:
+        _factory(monkeypatch)
+        runner.invoke(
+            app,
+            [
+                "reminder",
+                "add",
+                "Daily habit",
+                "--at",
+                "2020-01-01 09:00",
+                "--repeat",
+                "daily",
+            ],
+        )
+
+        result = runner.invoke(app, ["reminder", "sweep"])
+
+        assert result.exit_code == 0
+        assert "Daily habit" in result.stdout
+        assert "0 fired, 1 rescheduled" in result.stdout
+        after = runner.invoke(app, ["reminder", "list"])
+        assert "pending" in after.stdout
+        assert "2020-01-02" in after.stdout

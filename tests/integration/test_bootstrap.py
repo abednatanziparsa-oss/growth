@@ -41,6 +41,8 @@ class TestBuildApp:
         assert app.semantic_search is not None
         assert isinstance(app.plan_store, PlanStore)
         assert app.reminder_repo is not None
+        assert app.event_dispatcher is not None
+        assert app.scheduler is not None
         assert (tmp_path / "growth.db").exists()
 
     def test_build_app_default_settings_path(self, tmp_path, monkeypatch) -> None:

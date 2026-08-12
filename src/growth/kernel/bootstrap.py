@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 
 from growth.application.dtos import CanonicalPlan
 from growth.application.plan_applier import PlanApplier
+from growth.application.ports.event_dispatcher import EventDispatcher
+from growth.application.scheduler import Scheduler
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.logging.setup import configure_logging
 from growth.infrastructure.storage.identity_map import (
@@ -67,6 +69,8 @@ class App:
     semantic_search: SemanticSearch | None = field(default=None, repr=False)
     plan_store: PlanStore | None = field(default=None, repr=False)
     reminder_repo: ReminderRepository | None = field(default=None, repr=False)
+    event_dispatcher: EventDispatcher | None = field(default=None, repr=False)
+    scheduler: Scheduler | None = field(default=None, repr=False)
 
     @property
     def sync_engine(self) -> SyncEngine | None:
@@ -130,6 +134,7 @@ def build_app(settings: Settings | None = None) -> App:
     semantic_search = SemanticSearch(db)
     plan_store = PlanStore(db)
     reminder_repo = ReminderRepository(db)
+    scheduler = Scheduler(reminder_repo, container.event_dispatcher)
 
     plan_applier = PlanApplier(
         workspace_repo,
@@ -156,4 +161,6 @@ def build_app(settings: Settings | None = None) -> App:
         semantic_search=semantic_search,
         plan_store=plan_store,
         reminder_repo=reminder_repo,
+        event_dispatcher=container.event_dispatcher,
+        scheduler=scheduler,
     )

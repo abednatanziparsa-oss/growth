@@ -463,11 +463,44 @@ def reminder_add(
             help="Task id (UUID) this reminder is attached to.",
         ),
     ] = None,
+    repeat: Annotated[
+        str | None,
+        typer.Option(
+            "--repeat",
+            help="Repeat this reminder: daily, weekly, or monthly.",
+        ),
+    ] = None,
+    interval: Annotated[
+        int,
+        typer.Option(
+            "--interval",
+            help="Repeat every N units (with --repeat).",
+        ),
+    ] = 1,
+    until: Annotated[
+        str | None,
+        typer.Option(
+            "--until",
+            help="Repeat until this time (ISO-8601).",
+        ),
+    ] = None,
+    count: Annotated[
+        int | None,
+        typer.Option(
+            "--count",
+            help="Repeat at most N times total.",
+        ),
+    ] = None,
 ) -> None:
-    """Create a reminder."""
+    """Create a reminder (optionally recurring)."""
     from datetime import UTC, datetime
 
-    from growth.domain.reminders import Reminder, ReminderTarget
+    from growth.domain.reminders import (
+        RecurrenceFrequency,
+        RecurrenceRule,
+        Reminder,
+        ReminderTarget,
+    )
     from growth.domain.shared import DEFAULT_SPACE_ID, InternalId
 
     try:
@@ -480,6 +513,44 @@ def reminder_add(
         raise typer.Exit(code=1) from None
     if due_at.tzinfo is None:
         due_at = due_at.replace(tzinfo=UTC)
+
+    recurrence: RecurrenceRule | None = None
+    if repeat is not None:
+        try:
+            freq = RecurrenceFrequency(repeat)
+        except ValueError:
+            typer.echo(
+                f"[ERROR] Invalid --repeat {repeat!r}. Use daily, weekly, or monthly.",
+                err=True,
+            )
+            raise typer.Exit(code=1) from None
+
+        until_dt: datetime | None = None
+        if until is not None:
+            try:
+                until_dt = datetime.fromisoformat(until)
+            except ValueError:
+                typer.echo(
+                    f"[ERROR] Invalid --until value {until!r}. Use ISO-8601.",
+                    err=True,
+                )
+                raise typer.Exit(code=1) from None
+            if until_dt.tzinfo is None:
+                until_dt = until_dt.replace(tzinfo=UTC)
+
+        try:
+            recurrence = RecurrenceRule(
+                freq=freq, interval=interval, until=until_dt, count=count
+            )
+        except ValueError as exc:
+            typer.echo(f"[ERROR] {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+    elif interval != 1 or until is not None or count is not None:
+        typer.echo(
+            "[ERROR] --interval/--until/--count require --repeat.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
 
     app_ctx = build_app()
     repo = app_ctx.reminder_repo
@@ -496,11 +567,15 @@ def reminder_add(
         due_at=due_at,
         target_type=ReminderTarget.TASK if target_id else ReminderTarget.SPACE,
         target_id=target_id,
+        recurrence=recurrence,
         created_at=now,
         updated_at=now,
     )
     repo.save(reminder)
-    typer.echo(f"[OK] Reminder created (id={reminder.id}, due={due_at.isoformat()})")
+    label = f" (repeats {repeat} every {interval})" if recurrence else ""
+    typer.echo(
+        f"[OK] Reminder created (id={reminder.id}, due={due_at.isoformat()}{label})"
+    )
 
 
 @reminder_app.command(name="list")
@@ -588,6 +663,34 @@ def reminder_fire(
     reminder.updated_at = datetime.now(UTC)
     repo.save(reminder)
     typer.echo(f"[OK] Reminder fired: {reminder.title}")
+
+
+@reminder_app.command(name="sweep")
+def reminder_sweep() -> None:
+    """Fire all due reminders (and re-arm recurring ones)."""
+    from growth.domain.shared import DEFAULT_SPACE_ID
+
+    app_ctx = build_app()
+    scheduler = app_ctx.scheduler
+    if scheduler is None:
+        typer.echo("[ERROR] Scheduling is not available.", err=True)
+        raise typer.Exit(code=1)
+
+    result = scheduler.sweep(DEFAULT_SPACE_ID)
+    if result.total == 0:
+        typer.echo("No due reminders. 🎉")
+        return
+
+    for r in result.rescheduled:
+        typer.echo(f"  🔁 {r.title}  -> next {r.due_at.isoformat()}")
+    for r in result.fired:
+        typer.echo(f"  ✅ {r.title}  (fired)")
+    if result.errors:
+        typer.echo(f"  ⚠️ {result.errors} reminder(s) failed", err=True)
+    typer.echo(
+        f"[OK] Sweep done: {len(result.fired)} fired, "
+        f"{len(result.rescheduled)} rescheduled"
+    )
 
 
 def run() -> None:
