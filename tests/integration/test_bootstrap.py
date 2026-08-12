@@ -38,6 +38,7 @@ class TestBuildApp:
         assert app.identity_map is not None
         assert app.attachment_repo is not None
         assert app.knowledge_search is not None
+        assert app.semantic_search is not None
         assert isinstance(app.plan_store, PlanStore)
         assert (tmp_path / "growth.db").exists()
 

@@ -181,7 +181,32 @@ class TestKnowledgeCommands:
         miss = runner.invoke(app, ["knowledge", "search", "zzz"])
         assert miss.exit_code == 0
         assert "No results" in miss.stdout
-        f.unlink()
+
+    def test_semantic_search_flag(self, monkeypatch, tmp_path) -> None:
+        factory = SharedDbAppFactory()
+        monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+
+        f = tmp_path / "growth-roadmap.pdf"
+        f.write_text("growth roadmap notes", encoding="utf-8")
+        runner.invoke(app, ["knowledge", "attach", str(f)])
+
+        hit = runner.invoke(app, ["knowledge", "search", "--semantic", "roadmapp"])
+        assert hit.exit_code == 0
+        assert "growth-roadmap.pdf" in hit.stdout
+
+    def test_semantic_search_unavailable_errors(self, monkeypatch) -> None:
+        from types import SimpleNamespace
+
+        # Simulate an App without a semantic search engine.
+        monkeypatch.setattr(
+            "growth.presentation.cli.app.build_app",
+            lambda: SimpleNamespace(semantic_search=None),
+        )
+
+        result = runner.invoke(app, ["knowledge", "search", "--semantic", "x"])
+
+        assert result.exit_code == 1
+        assert "Semantic search is not available" in result.stderr
 
 
 # ============================================================================

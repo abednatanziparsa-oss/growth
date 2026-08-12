@@ -29,6 +29,7 @@ from growth.infrastructure.storage.knowledge_repos import (
     init_knowledge_db,
 )
 from growth.infrastructure.storage.plan_store import PlanStore, init_plan_store
+from growth.infrastructure.storage.semantic_search import SemanticSearch
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
     MilestoneRepository,
@@ -59,6 +60,7 @@ class App:
     identity_map: IdentityMap = field(repr=False)
     attachment_repo: AttachmentRepository = field(repr=False)
     knowledge_search: KeywordSearch = field(repr=False)
+    semantic_search: SemanticSearch | None = field(default=None, repr=False)
     plan_store: PlanStore | None = field(default=None, repr=False)
 
     @property
@@ -119,6 +121,7 @@ def build_app(settings: Settings | None = None) -> App:
     identity_map = IdentityMap(db)
     attachment_repo = AttachmentRepository(db)
     knowledge_search = KeywordSearch(db)
+    semantic_search = SemanticSearch(db)
     plan_store = PlanStore(db)
 
     plan_applier = PlanApplier(
@@ -143,5 +146,6 @@ def build_app(settings: Settings | None = None) -> App:
         identity_map=identity_map,
         attachment_repo=attachment_repo,
         knowledge_search=knowledge_search,
+        semantic_search=semantic_search,
         plan_store=plan_store,
     )

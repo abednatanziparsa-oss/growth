@@ -406,12 +406,28 @@ def knowledge_search(
         str,
         typer.Argument(help="Free-text search query."),
     ],
+    semantic: Annotated[
+        bool,
+        typer.Option(
+            "--semantic",
+            help="Use embedding-based semantic search (typo-tolerant, ranked by similarity).",
+        ),
+    ] = False,
 ) -> None:
-    """Search attachments by keyword (title + source path)."""
+    """Search attachments by keyword or embedding similarity."""
     from growth.domain.shared import DEFAULT_SPACE_ID
 
     app_ctx = build_app()
-    hits = app_ctx.knowledge_search.search(query, space_id=DEFAULT_SPACE_ID)
+
+    if semantic:
+        engine = getattr(app_ctx, "semantic_search", None)
+        if engine is None:
+            typer.echo("[ERROR] Semantic search is not available.", err=True)
+            raise typer.Exit(code=1)
+    else:
+        engine = app_ctx.knowledge_search
+
+    hits = engine.search(query, space_id=DEFAULT_SPACE_ID)
 
     if not hits:
         typer.echo(f"No results for {query!r}.")
