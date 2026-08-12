@@ -29,9 +29,9 @@
 ## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (278 passed, 0 failed)
-- Coverage: **98%** (1610 statements, 16 missed)
-- Git: 29 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (309 passed, 0 failed)
+- Coverage: **98%** (1746 statements, 24 missed)
+- Git: 31 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -47,6 +47,7 @@
 - **MarkdownProjection + `export markdown`** (v0.3) — **100%**
 - **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch + **SemanticSearch** (offline n-gram embeddings, typo-tolerant) — **99%/95%**
 - **Embeddings port** (v0.4): `LocalNGramEmbedder` (deterministic char n-gram hashing, 256-dim, zero deps) — **100%**
+- **Reminders** (v0.5, partial): Reminder aggregate + status lifecycle + `ReminderDue` event; SQLite `ReminderRepository` (100%); CLI `reminder add/list/due/fire` — **100%**
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -59,6 +60,7 @@
 | `plan_store.py` (new) | 100% |
 | `embeddings/local.py` (new) | 100% |
 | `storage/semantic_search.py` (new) | 95% |
+| `storage/reminder_repos.py` (new) | 100% |
 | `plan_applier.py` | 100% |
 | `projections/markdown.py` | 100% |
 | `projections/todoist.py` | 100% (fixed private-attr bug) |
@@ -72,9 +74,8 @@
 | ports (incl. `knowledge.py`) | 100% |
 | **Total** | **98%** |
 
-### What's NOT Yet Built (v0.4 → v1.0)
-- v0.5: **reminders, scheduling, Google Calendar** ← **next**
-- Reminders, scheduling, Google Calendar (v0.5)
+### What's NOT Yet Built (v0.5 -> v1.0)
+- v0.5 completion: **scheduling engine + Google Calendar projection** <- **next** (needs OAuth creds)
 - AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
 - DecisionEngine, WorkflowEngine (v0.7)
 - Platform: plugin marketplace, desktop app, GraphQL (v1.0)
@@ -149,7 +150,7 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 **CI: ALL GREEN** — ruff ✅, mypy strict ✅ (59 files), import-linter ✅ (3 contracts), pytest 256/256 ✅, coverage **98%**.
 
 **Next:**
-- v0.5: reminders, scheduling, Google Calendar ← **next**
+- v0.5 completion: scheduling engine + Google Calendar projection (needs OAuth creds) <- **next**
 - Real Todoist end-to-end test (needs live token)
 
 ---
