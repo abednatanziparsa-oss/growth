@@ -31,7 +31,7 @@
 ### CI: ALL GREEN ✅
 - ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (347 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 34 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 35 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -48,7 +48,7 @@
 - **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch + **SemanticSearch** (offline n-gram embeddings, typo-tolerant) — **99%/95%**
 - **Embeddings port** (v0.4): `LocalNGramEmbedder` (deterministic char n-gram hashing, 256-dim, zero deps) — **100%**
 - **Reminders + scheduling engine** (v0.5, partial): Reminder aggregate + status lifecycle + `ReminderDue` event; SQLite `ReminderRepository` with recurrence JSON column + legacy migration; `RecurrenceRule` (daily/weekly/monthly, interval, until, count); `Scheduler.sweep()` fires due reminders, dispatches events, re-arms recurring series with failure isolation; CLI `reminder add --repeat/--interval/--until/--count`, `reminder list/due/fire/sweep` — all **100%**
-- **TodoistAdapter SDK 4.0 conformance** (v0.2 hardening): verified every adapter call against installed todoist-api-python 4.0.0 signatures; fixed `is_completed` bug (SDK Task model has `completed_at`, not `is_completed`); added live-API E2E harness (`tests/integration/test_todoist_e2e.py`, skipped without `GROWTH_TODOIST_API_TOKEN`, unique project + delete-in-finally cleanup)
+- **TodoistAdapter SDK 4.0 conformance + live E2E** (v0.2 hardening): verified every adapter call against installed todoist-api-python 4.0.0; fixed `is_completed` bug (SDK Task model has `completed_at`, not `is_completed`); E2E harness (`tests/integration/test_todoist_e2e.py`) ran against the REAL API — full round trip passed (unique project + delete-in-finally cleanup); findings: `get_tasks()` returns ACTIVE tasks only, completed-tasks window capped at 6 weeks, no-due-date tasks verifiable only via by_completion_date
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -166,6 +166,7 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 - [x] E2E harness `tests/integration/test_todoist_e2e.py` (skipped w/o token; unique project + finally-cleanup) ✅
 - [x] Lint cleanup for ruff 0.15 (zip strict, PLC0415, F841, B017, ARG005) ✅
 - CI: 347 passed, coverage 98% ✅
+- [x] **Live E2E PASSED** (Parsa supplied a real token via chat; env-var only, never persisted): create project/section/task → fetch → update+complete → verify via completed-tasks endpoint → delete cleanup. Documented API quirks (active-only get_tasks, 6-week window cap, by_completion_date for dateless tasks) ✅
 
 ### Semantic Search — COMPLETE ✅ (v0.4 done)
 
