@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from types import SimpleNamespace
 from uuid import uuid4
 
 from typer.testing import CliRunner
@@ -195,8 +196,6 @@ class TestKnowledgeCommands:
         assert "growth-roadmap.pdf" in hit.stdout
 
     def test_semantic_search_unavailable_errors(self, monkeypatch) -> None:
-        from types import SimpleNamespace
-
         # Simulate an App without a semantic search engine.
         monkeypatch.setattr(
             "growth.presentation.cli.app.build_app",

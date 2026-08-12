@@ -16,7 +16,7 @@ from growth.domain.reminders import (
     ReminderStatus,
     ReminderTarget,
 )
-from growth.domain.shared import DEFAULT_SPACE_ID, InternalId
+from growth.domain.shared import DEFAULT_SPACE_ID, InternalId, SpaceId
 from growth.infrastructure.storage.reminder_repos import (
     ReminderRepository,
     init_reminder_db,
@@ -169,8 +169,6 @@ class TestSweepRecurring:
         assert repo.get(r.id).status is ReminderStatus.FIRED
 
     def test_fire_does_not_touch_other_spaces(self) -> None:
-        from growth.domain.shared import SpaceId
-
         repo = _new_repo()
         scheduler = Scheduler(repo, FakeDispatcher())
         other = SpaceId()

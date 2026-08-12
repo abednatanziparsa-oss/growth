@@ -31,11 +31,6 @@ from growth.infrastructure.storage.knowledge_repos import (
     init_knowledge_db,
 )
 from growth.infrastructure.storage.plan_store import PlanStore, init_plan_store
-from growth.infrastructure.storage.reminder_repos import (
-    ReminderRepository,
-    init_reminder_db,
-)
-from growth.infrastructure.storage.semantic_search import SemanticSearch
 from growth.infrastructure.storage.planning_repos import (
     GoalRepository,
     MilestoneRepository,
@@ -44,6 +39,11 @@ from growth.infrastructure.storage.planning_repos import (
     WorkspaceRepository,
     init_db,
 )
+from growth.infrastructure.storage.reminder_repos import (
+    ReminderRepository,
+    init_reminder_db,
+)
+from growth.infrastructure.storage.semantic_search import SemanticSearch
 from growth.infrastructure.sync.engine import SyncEngine, init_sync_state
 from growth.kernel.container import Container
 

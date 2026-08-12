@@ -20,7 +20,7 @@ def _factory(monkeypatch) -> SharedDbAppFactory:
 
 class TestReminderAdd:
     def test_add_with_naive_time(self, monkeypatch) -> None:
-        factory = _factory(monkeypatch)
+        _factory(monkeypatch)
         result = runner.invoke(
             app, ["reminder", "add", "Study algebra", "--at", "2026-08-13 09:00"]
         )

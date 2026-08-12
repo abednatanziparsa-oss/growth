@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime
 
 import pytest
@@ -100,5 +101,5 @@ class TestValidation:
 class TestImmutability:
     def test_frozen(self) -> None:
         r = _rule()
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             r.interval = 2  # type: ignore[misc]

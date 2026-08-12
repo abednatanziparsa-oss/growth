@@ -12,6 +12,7 @@ from growth.application.ports.reminders import (
 )
 from growth.application.ports.repository import EntityNotFoundError
 from growth.domain.reminders import (
+    RecurrenceFrequency,
     RecurrenceRule,
     Reminder,
     ReminderStatus,
@@ -184,8 +185,6 @@ class TestReminderRepository:
         assert got.target_id == task_id
 
     def test_recurrence_roundtrip(self) -> None:
-        from growth.domain.reminders import RecurrenceFrequency, RecurrenceRule
-
         db = _new_db()
         repo = ReminderRepository(db)
         rule = RecurrenceRule(

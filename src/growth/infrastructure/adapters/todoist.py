@@ -205,7 +205,9 @@ class TodoistAdapter:
                         "section_id": t.section_id,
                         "parent_id": t.parent_id,
                         "priority": t.priority,
-                        "is_completed": t.is_completed,
+                        # SDK 4.x Task model has no ``is_completed``; a
+                        # completed task is one with ``completed_at`` set.
+                        "is_completed": t.completed_at is not None,
                         "order": t.order,
                         "description": t.description,
                         "labels": t.labels,

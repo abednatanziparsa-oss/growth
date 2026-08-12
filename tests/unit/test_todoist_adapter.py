@@ -37,7 +37,7 @@ def _fake_task(**kw: object) -> SimpleNamespace:
         "section_id": "sec-1",
         "parent_id": None,
         "priority": 3,
-        "is_completed": False,
+        "completed_at": None,
         "order": 1,
         "description": "",
         "labels": [],
@@ -137,6 +137,22 @@ class TestTodoistAdapterFetch:
         tasks = snap.payload["tasks"]
         assert [t["content"] for t in tasks] == ["Study algebra", "Study geometry"]
         assert tasks[1]["parent_id"] == "t-a"
+        assert tasks[0]["is_completed"] is False
+
+    def test_fetch_current_maps_completed_at_to_is_completed(self) -> None:
+        fake = _FakeTodoistAPI("t")
+        adapter = _adapter(fake)
+        fake.get_tasks = lambda **_: [  # type: ignore[method-assign]
+            [
+                _fake_task(id="t-done", completed_at="2026-08-10T09:00:00Z"),
+                _fake_task(id="t-open"),
+            ]
+        ]
+
+        snap = adapter.fetch_current("proj-9")
+
+        by_id = {t["id"]: t["is_completed"] for t in snap.payload["tasks"]}
+        assert by_id == {"t-done": True, "t-open": False}
 
     def test_fetch_current_wraps_api_errors(self) -> None:
         class _BoomAPI(_FakeTodoistAPI):
