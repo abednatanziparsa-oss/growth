@@ -15,6 +15,7 @@ Safety: the test creates a uniquely-named project and deletes it in a
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -87,9 +88,21 @@ class TestTodoistLiveRoundTrip:
             )
             assert up.failed == 0
 
-            snap2 = adapter.fetch_current(project_id)
-            completed = [t for t in snap2.payload["tasks"] if t["id"] == task_id]
-            assert completed and completed[0]["is_completed"] is True
+            # Todoist's get_tasks() returns only ACTIVE tasks — a completed
+            # task disappears from the active list. Verify via the
+            # completed-tasks endpoint instead. The task has no due date, so
+            # query by completion time (its since/until window must not
+            # exceed 6 weeks) and match the unique task id.
+            now = datetime.now(UTC)
+            completed_pages = list(
+                adapter._api.get_completed_tasks_by_completion_date(
+                    since=now - timedelta(hours=1),
+                    until=now,
+                )
+            )
+            completed_tasks = [t for page in completed_pages for t in page]
+            done = [t for t in completed_tasks if t.id == task_id]
+            assert done and done[0].completed_at is not None
         finally:
             if project_id:
                 adapter.apply(

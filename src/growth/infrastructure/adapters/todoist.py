@@ -195,6 +195,7 @@ class TodoistAdapter:
         return sections
 
     def _get_tasks(self, project_id: str) -> list[dict[str, Any]]:
+        """Fetch ACTIVE tasks of a project (Todoist omits completed ones)."""
         tasks: list[dict[str, Any]] = []
         for page in self._api.get_tasks(project_id=project_id):
             for t in page:
