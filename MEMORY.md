@@ -29,9 +29,9 @@
 ## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (358 passed, 0 failed)
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (362 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 36 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 37 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -48,7 +48,7 @@
 - **Knowledge substrate** (v0.4): AttachmentRepository + KeywordSearch + **SemanticSearch** (offline n-gram embeddings, typo-tolerant) — **99%/95%**
 - **Embeddings port** (v0.4): `LocalNGramEmbedder` (deterministic char n-gram hashing, 256-dim, zero deps) — **100%**
 - **Reminders + scheduling engine** (v0.5, partial): Reminder aggregate + status lifecycle + `ReminderDue` event; SQLite `ReminderRepository` with recurrence JSON column + legacy migration; `RecurrenceRule` (daily/weekly/monthly, interval, until, count); `Scheduler.sweep()` fires due reminders, dispatches events, re-arms recurring series with failure isolation; CLI `reminder add --repeat/--interval/--until/--count`, `reminder list/due/fire/sweep` — all **100%**
-- **OllamaEmbedder** (v0.6 groundwork): model-backed embeddings behind the `Embeddings` port via Ollama `POST /api/embed` (L2-normalized); offline-first (wired only when `GROWTH_OLLAMA_BASE_URL` set), raises `EmbeddingUnavailableError` for graceful fallback to `LocalNGramEmbedder`; Settings `ollama_base_url`/`ollama_model` (bge-m3, multilingual) — **100%**
+- **Model embeddings wired into SemanticSearch** (v0.6 groundwork): `OllamaEmbedder` (httpx-based, `POST /api/embed`, L2-normalized) behind the `Embeddings` port; `SemanticSearch` accepts any embedder and falls back to `LocalNGramEmbedder` on `EmbeddingUnavailableError` (offline-first, queries never break when the server is down); wired via `GROWTH_OLLAMA_BASE_URL` / `GROWTH_OLLAMA_MODEL` (bge-m3) — **100%**
 - **TodoistAdapter SDK 4.0 conformance + live E2E** (v0.2 hardening): verified every adapter call against installed todoist-api-python 4.0.0; fixed `is_completed` bug (SDK Task model has `completed_at`, not `is_completed`); E2E harness (`tests/integration/test_todoist_e2e.py`) ran against the REAL API — full round trip passed (unique project + delete-in-finally cleanup); findings: `get_tasks()` returns ACTIVE tasks only, completed-tasks window capped at 6 weeks, no-due-date tasks verifiable only via by_completion_date
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
@@ -164,6 +164,7 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 ## Session Log (2026-08-13) — OllamaEmbedder (v0.6 groundwork)
 
 - [x] `infrastructure/embeddings/ollama.py`: httpx-based Ollama client, L2 normalized, all failure paths typed (`EmbeddingUnavailableError`) ✅
+- [x] `SemanticSearch` now takes any `Embeddings` impl + offline fallback on `EmbeddingUnavailableError`; bootstrap wires Ollama when configured; 4 new tests; CI: 362 passed, coverage 98% ✅
 - [x] Settings `ollama_base_url` (None = offline) + `ollama_model` (bge-m3); bootstrap wires `App.ollama_embedder` when configured ✅
 - [x] 11 new tests (port conformance, normalization, zero-vector, failures, env overrides, wiring); CI: 358 passed, coverage 98% ✅
 
