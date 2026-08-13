@@ -31,7 +31,7 @@
 ### CI: ALL GREEN ✅
 - ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (420 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 40 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 43 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -81,7 +81,7 @@
 | **Total** | **98%** |
 
 ### What's NOT Yet Built (v0.5 -> v1.0)
-- v0.5 wrap-up: **live Google Calendar** (code ships; needs Parsa's OAuth credentials.json + one-time browser consent, then publish the app to Production so refresh tokens outlive 7 days)
+- v0.5 wrap-up: **live Google Calendar DONE** ✅ (Parsa created a Desktop OAuth client via the new Google Auth Platform UI — scopes live under Data Access, test users under Audience; token stored at ~/.growth/token.json, env vars in .env; first real event pushed & listed live on 2026-08-13). Remaining: publish app to Production (or refresh token expires after 7 days in Testing mode)
 - AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
 - DecisionEngine, WorkflowEngine (v0.7)
 - Platform: plugin marketplace, desktop app, GraphQL (v1.0)
@@ -167,6 +167,16 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 
 - [x] `infrastructure/embeddings/ollama.py`: httpx-based Ollama client, L2 normalized, all failure paths typed (`EmbeddingUnavailableError`) ✅
 - [x] `SemanticSearch` now takes any `Embeddings` impl + offline fallback on `EmbeddingUnavailableError`; bootstrap wires Ollama when configured; 4 new tests; CI: 362 passed, coverage 98% ✅
+## Session Log (2026-08-13) — Google Calendar LIVE ✅✅✅
+
+- [x] Parsa: new Google Auth Platform UI — no heavy verification needed (leave domain/website fields empty; test user under Audience; scopes under Data Access; Desktop client under Clients) ✅
+- [x] credentials.json copied to ~/.growth; GROWTH_GOOGLE_* paths added to .env (gitignored) ✅
+- [x] OAuth consent flow completed (browser) → token.json saved ✅
+- [x] **LIVE E2E**: `reminder add` (Persian title) → `calendar push` → event created in real Google Calendar; `calendar list` shows it with Tehran tz ✅
+- [x] **BUGFIX: file_cache warning** — build(cache=None) still attempts oauth2client file-cache import; no-op cache object skips it; CLI output now clean ✅
+- [x] 43 commits; CI: 420 passed, coverage 98%, import-linter 3/3; pushed `0a8ff98`/`4bc2cc8` ✅
+
+
 ## Session Log (2026-08-13) — ICS export (zero-auth calendar alternative)
 
 - [x] Parsa: Google Cloud Console verification too heavy → built `IcsProjection` (RFC 5545): CRLF, escaping, folding, stable UIDs ✅
