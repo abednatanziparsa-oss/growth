@@ -166,6 +166,9 @@ app.add_typer(knowledge_app, name="knowledge")
 reminder_app = typer.Typer(help="Reminder management commands.")
 app.add_typer(reminder_app, name="reminder")
 
+calendar_app = typer.Typer(help="Google Calendar commands.")
+app.add_typer(calendar_app, name="calendar")
+
 
 def _current_plan(app_ctx: App) -> CanonicalPlan | None:
     """Return the latest applied plan for the default space.
@@ -692,6 +695,90 @@ def reminder_sweep() -> None:
         f"[OK] Sweep done: {len(result.fired)} fired, "
         f"{len(result.rescheduled)} rescheduled"
     )
+
+
+@calendar_app.command(name="auth")
+def calendar_auth() -> None:
+    """Authorize Google Calendar (OAuth) and store the token."""
+    app_ctx = build_app()
+    credentials = app_ctx.settings.google_credentials_path
+    token = app_ctx.settings.google_token_path
+    if credentials is None:
+        typer.echo(
+            "[ERROR] GROWTH_GOOGLE_CREDENTIALS_PATH is not set "
+            "(point it at your credentials.json).",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    if token is None:
+        typer.echo(
+            "[ERROR] GROWTH_GOOGLE_TOKEN_PATH is not set "
+            "(where should token.json be saved?).",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    typer.echo("Opening browser for Google authorization...")
+    app_ctx.authorize_calendar()
+    typer.echo(f"[OK] Token saved to {token}")
+
+
+@calendar_app.command(name="push")
+def calendar_push() -> None:
+    """Push pending reminders to Google Calendar (idempotent)."""
+    from growth.domain.shared import DEFAULT_SPACE_ID
+
+    app_ctx = build_app()
+    sync = app_ctx.calendar_sync
+    if sync is None:
+        typer.echo(
+            "[ERROR] Google Calendar is not configured. "
+            "Run `growth calendar auth` first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    result = sync.push(DEFAULT_SPACE_ID)
+    for title in result.created:
+        typer.echo(f"  [created] {title}")
+    for title in result.updated:
+        typer.echo(f"  [updated] {title}")
+    if result.errors:
+        typer.echo(f"  [error] {result.errors} reminder(s) failed", err=True)
+    typer.echo(
+        f"[OK] Push done: {len(result.created)} created, "
+        f"{len(result.updated)} updated, {len(result.skipped)} skipped"
+    )
+
+
+@calendar_app.command(name="list")
+def calendar_list(
+    limit: int = typer.Option(10, "--limit", "-n", help="Max events to show."),
+) -> None:
+    """List upcoming events from Google Calendar (next 30 days)."""
+    from datetime import UTC, datetime, timedelta
+
+    app_ctx = build_app()
+    adapter = app_ctx.calendar_adapter
+    if adapter is None:
+        typer.echo(
+            "[ERROR] Google Calendar is not configured. "
+            "Run `growth calendar auth` first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    now = datetime.now(UTC)
+    events = adapter.list_events(
+        time_min=now.isoformat(),
+        time_max=(now + timedelta(days=30)).isoformat(),
+    )
+    if not events:
+        typer.echo("No upcoming events.")
+        return
+    for event in events[:limit]:
+        start = event.get("start", {})
+        when = start.get("dateTime") or start.get("date") or "?"
+        typer.echo(f"  {when}  {event.get('summary', '(no title)')}")
 
 
 def _make_console_encoding_safe() -> None:

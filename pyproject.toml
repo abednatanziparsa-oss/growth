@@ -36,6 +36,8 @@ classifiers = [
 # Runtime dependencies. Kept deliberately minimal at bootstrap — feature
 # phases add their own (e.g., todoist-api-python in v0.1, pypdf in v0.6).
 dependencies = [
+    "google-api-python-client>=2.100",
+    "google-auth-oauthlib>=1.2",
     "pydantic>=2.5",
     "pydantic-settings>=2.1",
     "python-dotenv>=1.0.1",
@@ -124,10 +126,12 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests legitimately use asserts, magic values, and longer argument lists.
-"tests/**" = ["PLR2004", "S101", "ARG001", "ARG002"]
+"tests/**" = ["PLR2004", "S101", "ARG001", "ARG002", "N803"]
 # Noop implementations are intentionally stubby.
 "src/growth/infrastructure/noop/**" = ["ARG001", "ARG002"]
 # Kernel: imports infrastructure for wiring.
+# Lazy google imports (heavy client) are intentional here.
+"src/growth/infrastructure/adapters/calendar.py" = ["PLC0415"]
 "src/growth/kernel/bootstrap.py" = ["PLC0415"]
 # CLI commands: lazy imports for fast startup; long functions are normal in Typer.
 "src/growth/presentation/cli/app.py" = ["PLC0415", "PLR0915"]

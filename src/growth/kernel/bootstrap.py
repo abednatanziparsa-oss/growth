@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
+from growth.application.calendar_sync import CalendarSync
 from growth.application.dtos import CanonicalPlan
 from growth.application.plan_applier import PlanApplier
 from growth.application.ports.event_dispatcher import EventDispatcher
@@ -48,6 +50,9 @@ from growth.infrastructure.storage.semantic_search import SemanticSearch
 from growth.infrastructure.sync.engine import SyncEngine, init_sync_state
 from growth.kernel.container import Container
 
+if TYPE_CHECKING:
+    from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
+
 __all__ = ["App", "build_app"]
 
 
@@ -73,6 +78,56 @@ class App:
     event_dispatcher: EventDispatcher | None = field(default=None, repr=False)
     scheduler: Scheduler | None = field(default=None, repr=False)
     ollama_embedder: OllamaEmbedder | None = field(default=None, repr=False)
+
+    @property
+    def calendar_adapter(self) -> GoogleCalendarAdapter | None:
+        """Build the Google Calendar adapter on-demand (needs OAuth files).
+
+        Returns None when the OAuth credentials/token are not configured.
+        """
+        credentials = self.settings.google_credentials_path
+        token = self.settings.google_token_path
+        if not credentials or not token:
+            return None
+        from growth.infrastructure.adapters.calendar import (
+            GoogleCalendarAdapter,
+            build_calendar_service,
+        )
+
+        service = build_calendar_service(token)
+        return GoogleCalendarAdapter(service)
+
+    @property
+    def calendar_sync(self) -> CalendarSync | None:
+        """Build the calendar push use case on-demand (needs OAuth files)."""
+        if self.settings.google_credentials_path is None:
+            return None
+        if self.settings.google_token_path is None:
+            return None
+        if self.reminder_repo is None:
+            return None
+        adapter = self.calendar_adapter
+        if adapter is None:
+            return None
+        from growth.infrastructure.projections.calendar import CalendarProjection
+
+        return CalendarSync(
+            self.reminder_repo,
+            self.identity_map,  # type: ignore[arg-type]  # IdentityMapEntry ⊇ ProviderMapping
+            CalendarProjection(),
+            adapter,
+        )
+
+    def authorize_calendar(self) -> bool:
+        """Run the Google OAuth flow; returns ``True`` on success."""
+        credentials = self.settings.google_credentials_path
+        token = self.settings.google_token_path
+        if credentials is None or token is None:
+            return False
+        from growth.infrastructure.adapters.calendar import run_oauth_flow
+
+        run_oauth_flow(credentials, token)
+        return True
 
     @property
     def sync_engine(self) -> SyncEngine | None:

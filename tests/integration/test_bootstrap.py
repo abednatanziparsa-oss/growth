@@ -47,6 +47,26 @@ class TestBuildApp:
         assert app.ollama_embedder is None  # offline by default
         assert (tmp_path / "growth.db").exists()
 
+    def test_calendar_sync_none_when_unconfigured(self, tmp_path) -> None:
+        app = build_app(_settings(tmp_path))
+
+        assert app.calendar_adapter is None
+        assert app.calendar_sync is None
+
+    def test_calendar_sync_none_without_reminder_repo(self, tmp_path) -> None:
+        app = build_app(_settings(tmp_path))
+        app.settings.google_credentials_path = tmp_path / "credentials.json"
+        app.settings.google_token_path = tmp_path / "token.json"
+        app.reminder_repo = None
+
+        assert app.calendar_sync is None
+
+    def test_calendar_sync_none_without_token_path(self, tmp_path) -> None:
+        app = build_app(_settings(tmp_path))
+        app.settings.google_credentials_path = tmp_path / "credentials.json"
+
+        assert app.calendar_sync is None
+
     def test_build_app_default_settings_path(self, tmp_path, monkeypatch) -> None:
         """build_app() with no explicit settings loads Settings() internally."""
         monkeypatch.setattr(

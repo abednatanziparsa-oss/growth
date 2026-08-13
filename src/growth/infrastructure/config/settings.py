@@ -111,6 +111,25 @@ class Settings(BaseSettings):
         description="Todoist API token (read from TODOIST_API_TOKEN env var).",
     )
 
+    google_credentials_path: Path | None = Field(
+        default=None,
+        description=(
+            "Path to the Google OAuth client secrets file (credentials.json, "
+            "Desktop app type). When set together with google_token_path, the "
+            "Google Calendar adapter is wired at bootstrap; None (default) "
+            "keeps the system fully offline."
+        ),
+    )
+
+    google_token_path: Path | None = Field(
+        default=None,
+        description=(
+            "Path to the stored Google OAuth token (token.json). Produced by "
+            "`growth calendar auth`; the adapter is wired only when both this "
+            "and google_credentials_path are set."
+        ),
+    )
+
     # -------------------------------------------------------------------------
     # Validation
     # -------------------------------------------------------------------------
