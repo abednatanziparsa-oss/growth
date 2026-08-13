@@ -31,6 +31,21 @@ __all__ = [
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 
 
+class _NoCache:
+    """Minimal discovery-cache stub: disables googleapiclient's file cache.
+
+    Passing ``cache=None`` to ``build()`` makes googleapiclient attempt
+    to import its oauth2client-based file cache and log a noisy warning
+    when oauth2client is absent. A non-None no-op cache skips that path.
+    """
+
+    def get(self, _url: str) -> None:
+        return None
+
+    def set(self, _url: str, _response: object) -> None:
+        pass
+
+
 def run_oauth_flow(credentials_path: Path, token_path: Path) -> None:
     """Run the installed-app OAuth flow and persist the token.
 
@@ -54,7 +69,7 @@ def build_calendar_service(token_path: Path) -> Any:
     creds = Credentials.from_authorized_user_file(  # type: ignore[no-untyped-call]
         str(token_path), SCOPES
     )
-    return build("calendar", "v3", credentials=creds, cache=None)
+    return build("calendar", "v3", credentials=creds, cache=_NoCache())
 
 
 class GoogleCalendarAdapter:

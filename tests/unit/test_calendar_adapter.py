@@ -133,12 +133,15 @@ class TestGoogleCalendarAdapter:
         service = build_calendar_service(token_path)
 
         assert service == "service"
+        cache = called.pop("cache")
         assert called == {
             "api": "calendar",
             "version": "v3",
             "creds": the_creds,
-            "cache": None,
         }
+        assert cache is not None
+        assert cache.get("url") is None
+        assert cache.set("url", "resp") is None
 
     def test_scopes_are_read_write_events(self) -> None:
         assert SCOPES == ["https://www.googleapis.com/auth/calendar.events"]
