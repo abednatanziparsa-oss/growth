@@ -30,6 +30,7 @@ class EventPayload:
     start: str  # ISO-8601 with timezone
     end: str
     description: str = ""
+    uid: str = ""  # stable per-reminder id (used by the ICS projection)
 
 
 class CalendarProjection:
@@ -44,4 +45,5 @@ class CalendarProjection:
             start=reminder.due_at.isoformat(),
             end=end.isoformat(),
             description=f"Growth OS reminder -> {reminder.target_type.value}:{target}",
+            uid=str(reminder.id),
         )

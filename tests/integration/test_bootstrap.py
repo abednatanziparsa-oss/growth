@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from growth.application.dtos import CanonicalPlan
 from growth.domain.planning import Workspace
+from growth.domain.reminders import Reminder, ReminderTarget
 from growth.domain.shared import DEFAULT_SPACE_ID, InternalId, SpaceId
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.embeddings.local import LocalNGramEmbedder
@@ -66,6 +67,58 @@ class TestBuildApp:
         app.settings.google_credentials_path = tmp_path / "credentials.json"
 
         assert app.calendar_sync is None
+
+    def test_export_calendar_ics_empty_by_default(self, tmp_path) -> None:
+        app = build_app(_settings(tmp_path))
+
+        text, count = app.export_calendar_ics()
+
+        assert count == 0
+        assert text.startswith("BEGIN:VCALENDAR")
+
+    def test_export_calendar_ics_renders_pending_reminders(self, tmp_path) -> None:
+        app = build_app(_settings(tmp_path))
+        repo = app.reminder_repo
+        assert repo is not None
+        now = datetime.now(UTC)
+        repo.save(
+            Reminder(
+                id=InternalId(),
+                space_id=DEFAULT_SPACE_ID,
+                title="Upcoming study",
+                due_at=now + timedelta(hours=2),
+                target_type=ReminderTarget.SPACE,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+        text, count = app.export_calendar_ics()
+
+        assert count == 1
+        assert "SUMMARY:Upcoming study" in text
+
+    def test_export_calendar_ics_skips_past_due(self, tmp_path) -> None:
+        app = build_app(_settings(tmp_path))
+        repo = app.reminder_repo
+        assert repo is not None
+        now = datetime.now(UTC)
+        repo.save(
+            Reminder(
+                id=InternalId(),
+                space_id=DEFAULT_SPACE_ID,
+                title="Old item",
+                due_at=now - timedelta(hours=2),
+                target_type=ReminderTarget.SPACE,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+        text, count = app.export_calendar_ics()
+
+        assert count == 0
+        assert "Old item" not in text
 
     def test_build_app_default_settings_path(self, tmp_path, monkeypatch) -> None:
         """build_app() with no explicit settings loads Settings() internally."""

@@ -219,3 +219,51 @@ class TestCalendarCli:
 
         assert result.exit_code == 0
         assert "No upcoming events." in result.stdout
+
+    def test_export_ics_writes_file(self, monkeypatch, tmp_path) -> None:
+        factory = _configured_factory(None, None)
+        _add_reminder(factory, title="Math review")
+        monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+        out = tmp_path / "reminders.ics"
+
+        result = runner.invoke(app, ["calendar", "export-ics", "--out", str(out)])
+
+        assert result.exit_code == 0
+        assert "1 reminder(s) exported" in result.stdout
+        text = out.read_text(encoding="utf-8")
+        assert text.startswith("BEGIN:VCALENDAR")
+        assert "SUMMARY:Math review" in text
+        assert "BEGIN:VEVENT" in text
+
+        raw = out.read_bytes()
+        assert b"\r\n" in raw
+        assert b"\r\r\n" not in raw  # no Windows CRLF translation
+        assert raw.endswith(b"\r\n")
+
+    def test_export_ics_with_no_reminders(self, monkeypatch, tmp_path) -> None:
+        factory = _configured_factory(None, None)
+        monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+        out = tmp_path / "empty.ics"
+
+        result = runner.invoke(app, ["calendar", "export-ics", "--out", str(out)])
+
+        assert result.exit_code == 0
+        assert "0 reminder(s) exported" in result.stdout
+        text = out.read_text(encoding="utf-8")
+        assert text.startswith("BEGIN:VCALENDAR")
+        assert "BEGIN:VEVENT" not in text
+
+    def test_export_ics_default_path(self, monkeypatch, tmp_path) -> None:
+        factory = _configured_factory(None, None)
+        monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+        monkeypatch.setattr(
+            "growth.presentation.cli.app.Path.home",
+            lambda: tmp_path,
+        )
+
+        result = runner.invoke(app, ["calendar", "export-ics"])
+
+        assert result.exit_code == 0
+        default = tmp_path / ".growth" / "reminders.ics"
+        assert default.exists()
+        assert "0 reminder(s) exported" in result.stdout

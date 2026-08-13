@@ -781,6 +781,33 @@ def calendar_list(
         typer.echo(f"  {when}  {event.get('summary', '(no title)')}")
 
 
+@calendar_app.command(name="export-ics")
+def calendar_export_ics(
+    out: Path = typer.Option(
+        None,
+        "--out",
+        "-o",
+        help="Output .ics path (default: ~/.growth/reminders.ics).",
+    ),
+) -> None:
+    """Export pending reminders as an .ics file (no auth needed).
+
+    Import the file into any calendar app (Google Calendar, Outlook,
+    Apple Calendar) — the zero-verification alternative to calendar push.
+    """
+    app_ctx = build_app()
+    ics_text, count = app_ctx.export_calendar_ics()
+    path = out or Path.home() / ".growth" / "reminders.ics"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # newline="" disables Windows CRLF translation (CR CR LF would corrupt
+    # the RFC 5545 line endings).
+    path.write_text(ics_text, encoding="utf-8", newline="")
+    typer.echo(f"[OK] {count} reminder(s) exported to {path}")
+    typer.echo(
+        "Import this file into your calendar app (Google Calendar > Settings > Import)."
+    )
+
+
 def _make_console_encoding_safe() -> None:
     """Degrade gracefully on legacy consoles (e.g. Windows cp1252).
 

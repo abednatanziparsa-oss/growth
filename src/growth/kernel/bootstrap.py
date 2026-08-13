@@ -155,6 +155,32 @@ class App:
         snapshot = projection.project(plan)
         return str(snapshot.payload.get("content", ""))
 
+    def export_calendar_ics(self) -> tuple[str, int]:
+        """Render pending reminders as an iCalendar string.
+
+        Returns:
+            A ``(ics_text, event_count)`` pair. Past-due reminders are
+            excluded; recurring reminders render their current occurrence.
+        """
+        from datetime import UTC, datetime
+
+        from growth.domain.shared import DEFAULT_SPACE_ID
+        from growth.infrastructure.projections.calendar import (
+            CalendarProjection,
+        )
+        from growth.infrastructure.projections.ics import IcsProjection
+
+        if self.reminder_repo is None:
+            return "", 0
+        now = datetime.now(UTC)
+        reminders = [
+            r
+            for r in self.reminder_repo.list_pending(DEFAULT_SPACE_ID)
+            if r.due_at >= now
+        ]
+        payloads = [CalendarProjection().project(r) for r in reminders]
+        return IcsProjection().render(payloads), len(payloads)
+
 
 def build_app(settings: Settings | None = None) -> App:
     """Build a runnable ``App``.
