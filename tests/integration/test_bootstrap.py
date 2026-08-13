@@ -43,6 +43,7 @@ class TestBuildApp:
         assert app.reminder_repo is not None
         assert app.event_dispatcher is not None
         assert app.scheduler is not None
+        assert app.ollama_embedder is None  # offline by default
         assert (tmp_path / "growth.db").exists()
 
     def test_build_app_default_settings_path(self, tmp_path, monkeypatch) -> None:
@@ -107,3 +108,16 @@ class TestBuildApp:
 
         assert content.startswith("# Bootstrap Plan\n")
         assert "*Exported by Growth OS*" in content
+
+    def test_ollama_embedder_wired_when_configured(self, tmp_path) -> None:
+        settings = Settings(
+            _env_file=None,
+            data_dir=tmp_path,
+            ollama_base_url="http://127.0.0.1:11434",
+            ollama_model="nomic-embed-text",
+        )
+        app = build_app(settings)
+
+        assert app.ollama_embedder is not None
+        assert app.ollama_embedder._base_url == "http://127.0.0.1:11434"
+        assert app.ollama_embedder._model == "nomic-embed-text"

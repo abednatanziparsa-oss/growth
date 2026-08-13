@@ -58,7 +58,7 @@ dev = [
 ]
 # Reserved placeholders — declared now so the optional-dependency surface is
 # stable, populated when the corresponding phase needs them.
-ai = []      # v0.6: ollama, openai, anthropic
+ai = ["httpx>=0.27"]   # v0.6: ollama (httpx already present via todoist-api-python)
 pdf = []     # v0.6: pypdf, pdfplumber
 storage = [] # v0.1: sqlalchemy, alembic
 

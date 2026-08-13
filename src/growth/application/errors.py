@@ -22,6 +22,7 @@ from __future__ import annotations
 __all__ = [
     "ApplicationError",
     "ConflictDetectedError",
+    "EmbeddingUnavailableError",
     "PortError",
     "ProviderUnavailableError",
     "SyncError",
@@ -86,4 +87,13 @@ class ProviderUnavailableError(SyncError):
 
     Surfaced so callers can retry with backoff or fall back to a backup
     provider (e.g., Markdown export when the API is down).
+    """
+
+
+class EmbeddingUnavailableError(ApplicationError):
+    """Raised when a model-backed embedder cannot produce vectors.
+
+    Covers connection failures, HTTP errors, and malformed responses.
+    Callers (e.g. semantic search) fall back to the offline
+    ``LocalNGramEmbedder`` when this is raised.
     """

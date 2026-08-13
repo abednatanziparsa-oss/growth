@@ -20,6 +20,7 @@ from growth.application.plan_applier import PlanApplier
 from growth.application.ports.event_dispatcher import EventDispatcher
 from growth.application.scheduler import Scheduler
 from growth.infrastructure.config.settings import Settings
+from growth.infrastructure.embeddings.ollama import OllamaEmbedder
 from growth.infrastructure.logging.setup import configure_logging
 from growth.infrastructure.storage.identity_map import (
     IdentityMap,
@@ -71,6 +72,7 @@ class App:
     reminder_repo: ReminderRepository | None = field(default=None, repr=False)
     event_dispatcher: EventDispatcher | None = field(default=None, repr=False)
     scheduler: Scheduler | None = field(default=None, repr=False)
+    ollama_embedder: OllamaEmbedder | None = field(default=None, repr=False)
 
     @property
     def sync_engine(self) -> SyncEngine | None:
@@ -135,6 +137,14 @@ def build_app(settings: Settings | None = None) -> App:
     plan_store = PlanStore(db)
     reminder_repo = ReminderRepository(db)
     scheduler = Scheduler(reminder_repo, container.event_dispatcher)
+    ollama_embedder = (
+        OllamaEmbedder(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model,
+        )
+        if settings.ollama_base_url
+        else None
+    )
 
     plan_applier = PlanApplier(
         workspace_repo,
@@ -163,4 +173,5 @@ def build_app(settings: Settings | None = None) -> App:
         reminder_repo=reminder_repo,
         event_dispatcher=container.event_dispatcher,
         scheduler=scheduler,
+        ollama_embedder=ollama_embedder,
     )

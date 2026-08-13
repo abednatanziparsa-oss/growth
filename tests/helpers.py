@@ -12,6 +12,7 @@ from typer.testing import CliRunner
 from growth.application.plan_applier import PlanApplier
 from growth.application.scheduler import Scheduler
 from growth.infrastructure.config.settings import Settings
+from growth.infrastructure.embeddings.ollama import OllamaEmbedder
 from growth.infrastructure.logging.setup import configure_logging
 from growth.infrastructure.storage.identity_map import (
     IdentityMap,
@@ -92,6 +93,7 @@ class SharedDbAppFactory:
                     self._app.reminder_repo,  # type: ignore[arg-type]
                     self._app.container.event_dispatcher,
                 ),
+                ollama_embedder=self._app.ollama_embedder,
             )
 
         settings = self._settings or Settings()
@@ -111,6 +113,14 @@ class SharedDbAppFactory:
 
         plan_store = PlanStore(db)
         reminder_repo = ReminderRepository(db)
+        ollama_embedder = (
+            OllamaEmbedder(
+                base_url=settings.ollama_base_url,
+                model=settings.ollama_model,
+            )
+            if settings.ollama_base_url
+            else None
+        )
 
         self._app = App(
             settings=settings,
@@ -137,6 +147,7 @@ class SharedDbAppFactory:
             reminder_repo=reminder_repo,
             event_dispatcher=container.event_dispatcher,
             scheduler=Scheduler(reminder_repo, container.event_dispatcher),
+            ollama_embedder=ollama_embedder,
         )
         return self._app
 

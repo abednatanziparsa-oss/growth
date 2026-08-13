@@ -89,6 +89,20 @@ class Settings(BaseSettings):
         ),
     )
 
+    ollama_base_url: str | None = Field(
+        default=None,
+        description=(
+            "Ollama server base URL (e.g. http://127.0.0.1:11434). "
+            "When set, an Ollama embedder is wired at bootstrap; "
+            "None (default) keeps the system fully offline."
+        ),
+    )
+
+    ollama_model: str = Field(
+        default="bge-m3",
+        description="Embedding model served by Ollama (bge-m3 is multilingual).",
+    )
+
     # --- Reserved provider token holders (loaded from env, never logged) ----
     # Declared as separate optional fields so the wiring in kernel/ can
     # detect presence without coupling to a provider subpackage.
