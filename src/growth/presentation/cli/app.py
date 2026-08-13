@@ -13,6 +13,7 @@ Commands:
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -107,23 +108,23 @@ def plan_show() -> None:
         return
 
     for ws in workspaces:
-        typer.echo(f"\n📁 {ws.title}")
+        typer.echo(f"\n[Workspace] {ws.title}")
         for p in app_ctx.project_repo.list_by_workspace(ws.id):
-            typer.echo(f"  📦 {p.title}")
+            typer.echo(f"  [Project] {p.title}")
             for g in app_ctx.goal_repo.list_by_project(p.id):
-                icon = "✅" if g.is_completed else "🎯"
+                icon = "[done]" if g.is_completed else "[open]"
                 typer.echo(
                     f"    {icon} {g.title} ({g.priority.value if g.priority else 'no priority'})"
                 )
                 for m in app_ctx.milestone_repo.list_by_goal(g.id):
-                    m_icon = "✅" if m.is_completed else "📌"
+                    m_icon = "[x]" if m.is_completed else "[ ]"
                     typer.echo(f"      {m_icon} {m.title}")
 
     tasks = app_ctx.task_repo.list_top_level(DEFAULT_SPACE_ID)
     if tasks:
-        typer.echo(f"\n  📋 Tasks ({len(tasks)} top-level):")
+        typer.echo(f"\n  [Tasks] ({len(tasks)} top-level):")
         for t in tasks[:10]:
-            icon = "✅" if t.is_completed else "⬜"
+            icon = "[x]" if t.is_completed else "[ ]"
             typer.echo(f"    {icon} {t.title}")
 
 
@@ -597,10 +598,10 @@ def reminder_list() -> None:
     for r in reminders:
         target = r.target_id.value if r.target_id else "(space)"
         icon = {
-            "pending": "⏳",
-            "fired": "✅",
-            "dismissed": "🚫",
-            "cancelled": "❌",
+            "pending": "[.]",
+            "fired": "[x]",
+            "dismissed": "[-]",
+            "cancelled": "[!]",
         }[r.status.value]
         typer.echo(
             f"  {icon} {r.id}  {r.title}  @ {r.due_at.isoformat()}  "
@@ -623,11 +624,11 @@ def reminder_due() -> None:
 
     due = repo.list_due(DEFAULT_SPACE_ID, datetime.now(UTC))
     if not due:
-        typer.echo("No due reminders. 🎉")
+        typer.echo("No due reminders.")
         return
 
     for r in due:
-        typer.echo(f"  ⏰ {r.id}  {r.title}  (due {r.due_at.isoformat()})")
+        typer.echo(f"  [due] {r.id}  {r.title}  (due {r.due_at.isoformat()})")
     typer.echo(
         f"\n{len(due)} reminder(s) due — 'growth reminder fire <id>' to mark fired."
     )
@@ -678,22 +679,38 @@ def reminder_sweep() -> None:
 
     result = scheduler.sweep(DEFAULT_SPACE_ID)
     if result.total == 0:
-        typer.echo("No due reminders. 🎉")
+        typer.echo("No due reminders.")
         return
 
     for r in result.rescheduled:
-        typer.echo(f"  🔁 {r.title}  -> next {r.due_at.isoformat()}")
+        typer.echo(f"  [repeat] {r.title}  -> next {r.due_at.isoformat()}")
     for r in result.fired:
-        typer.echo(f"  ✅ {r.title}  (fired)")
+        typer.echo(f"  [fired] {r.title}")
     if result.errors:
-        typer.echo(f"  ⚠️ {result.errors} reminder(s) failed", err=True)
+        typer.echo(f"  [error] {result.errors} reminder(s) failed", err=True)
     typer.echo(
         f"[OK] Sweep done: {len(result.fired)} fired, "
         f"{len(result.rescheduled)} rescheduled"
     )
 
 
+def _make_console_encoding_safe() -> None:
+    """Degrade gracefully on legacy consoles (e.g. Windows cp1252).
+
+    Plan titles and reminder text may legitimately contain emoji; a
+    cp1252 console raises ``UnicodeEncodeError`` when printing them.
+    Reconfiguring the streams with ``errors="replace"`` turns
+    unencodable characters into ``?`` instead of crashing.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            with contextlib.suppress(ValueError, OSError):
+                reconfigure(errors="replace")
+
+
 def run() -> None:
     """Console-script entry point."""
+    _make_console_encoding_safe()
     app(standalone_mode=False)
     sys.exit(0)

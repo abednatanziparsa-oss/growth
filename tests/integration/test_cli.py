@@ -228,10 +228,10 @@ def test_plan_show_tree_format(monkeypatch) -> None:
     result = runner.invoke(app, ["plan", "show"])
     assert result.exit_code == 0
 
-    assert "📁" in result.stdout
-    assert "📦" in result.stdout
-    assert "🎯" in result.stdout
-    assert "📌" in result.stdout
+    assert "[Workspace]" in result.stdout
+    assert "[Project]" in result.stdout
+    assert "[open]" in result.stdout
+    assert "[ ]" in result.stdout
 
 
 def test_plan_stats(monkeypatch) -> None:
