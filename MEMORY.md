@@ -29,9 +29,9 @@
 ## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (401 passed, 0 failed)
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (420 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 39 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 40 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -51,6 +51,7 @@
 - **Model embeddings wired into SemanticSearch** (v0.6 groundwork): `OllamaEmbedder` (httpx-based, `POST /api/embed`, L2-normalized) behind the `Embeddings` port; `SemanticSearch` accepts any embedder and falls back to `LocalNGramEmbedder` on `EmbeddingUnavailableError` (offline-first, queries never break when the server is down); wired via `GROWTH_OLLAMA_BASE_URL` / `GROWTH_OLLAMA_MODEL` (bge-m3) — **100%**
 - **TodoistAdapter SDK 4.0 conformance + live E2E** (v0.2 hardening): verified every adapter call against installed todoist-api-python 4.0.0; fixed `is_completed` bug (SDK Task model has `completed_at`, not `is_completed`); E2E harness (`tests/integration/test_todoist_e2e.py`) ran against the REAL API — full round trip passed (unique project + delete-in-finally cleanup); findings: `get_tasks()` returns ACTIVE tasks only, completed-tasks window capped at 6 weeks, no-due-date tasks verifiable only via by_completion_date
 - **Google Calendar layer** (v0.5): `GoogleCalendarAdapter` (create/update/delete/list events, service-injected & mock-tested); `CalendarProjection` (pending reminder -> event, 30-min default, target in description); `CalendarSync` application use case (idempotent push via IdentityMap provider=gcal, no duplicate events, per-reminder failure isolation); `IdentityMapPort` (new application port); `run_oauth_flow` + `build_calendar_service` (installed-app OAuth, calendar.events scope); Settings `GROWTH_GOOGLE_CREDENTIALS_PATH`/`GROWTH_GOOGLE_TOKEN_PATH` (offline by default); CLI `calendar auth|push|list` — **all 100% covered**
+- **ICS export — zero-auth calendar** (v0.5.1): `IcsProjection` renders EventPayloads as RFC 5545 iCalendar (CRLF endings, value escaping, 75-octet folding, stable per-reminder UIDs, UTC-normalized); `App.export_calendar_ics()` -> (text, count); CLI `calendar export-ics` (default ~/.growth/reminders.ics, imports into any calendar app, no OAuth); fixed Windows CRLF translation bug (write_text -> CR CRLF, newline='') — **all 100% covered**
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -166,6 +167,14 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 
 - [x] `infrastructure/embeddings/ollama.py`: httpx-based Ollama client, L2 normalized, all failure paths typed (`EmbeddingUnavailableError`) ✅
 - [x] `SemanticSearch` now takes any `Embeddings` impl + offline fallback on `EmbeddingUnavailableError`; bootstrap wires Ollama when configured; 4 new tests; CI: 362 passed, coverage 98% ✅
+## Session Log (2026-08-13) — ICS export (zero-auth calendar alternative)
+
+- [x] Parsa: Google Cloud Console verification too heavy → built `IcsProjection` (RFC 5545): CRLF, escaping, folding, stable UIDs ✅
+- [x] `App.export_calendar_ics()` + CLI `calendar export-ics`; imports into any calendar app without OAuth ✅
+- [x] **BUGFIX: Windows CRLF translation** — `Path.write_text` wrote CR CR LF (corrupts .ics); `newline=''` + raw-bytes regression test ✅
+- [x] 19 new tests; CI: 420 passed, coverage 98%, import-linter 3/3; pushed `ef04e56` ✅
+
+
 ## Session Log (2026-08-13) — Google Calendar layer (v0.5 code complete)
 
 - [x] `infrastructure/adapters/calendar.py`: `GoogleCalendarAdapter` (service injected, narrow CRUD), `run_oauth_flow`, `build_calendar_service`, `ProviderUnavailableError` mapping ✅
