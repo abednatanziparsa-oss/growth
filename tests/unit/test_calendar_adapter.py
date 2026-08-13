@@ -118,11 +118,12 @@ class TestGoogleCalendarAdapter:
         )
 
         def fake_build(
-            api: str, version: str, credentials: object | None = None
+            api: str, version: str, credentials: object | None = None, **kwargs: object
         ) -> str:
             called["api"] = api
             called["version"] = version
             called["creds"] = credentials
+            called["cache"] = kwargs.get("cache")
             return "service"
 
         monkeypatch.setattr(discovery_mod, "build", fake_build)
@@ -136,6 +137,7 @@ class TestGoogleCalendarAdapter:
             "api": "calendar",
             "version": "v3",
             "creds": the_creds,
+            "cache": None,
         }
 
     def test_scopes_are_read_write_events(self) -> None:

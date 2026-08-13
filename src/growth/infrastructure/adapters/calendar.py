@@ -54,7 +54,7 @@ def build_calendar_service(token_path: Path) -> Any:
     creds = Credentials.from_authorized_user_file(  # type: ignore[no-untyped-call]
         str(token_path), SCOPES
     )
-    return build("calendar", "v3", credentials=creds)
+    return build("calendar", "v3", credentials=creds, cache=None)
 
 
 class GoogleCalendarAdapter:
