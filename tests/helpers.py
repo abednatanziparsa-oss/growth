@@ -85,7 +85,7 @@ class SharedDbAppFactory:
                 identity_map=IdentityMap(db),
                 attachment_repo=AttachmentRepository(db),
                 knowledge_search=KeywordSearch(db),
-                semantic_search=SemanticSearch(db),
+                semantic_search=SemanticSearch(db, embedder=self._app.ollama_embedder),
                 plan_store=self._app.plan_store,
                 reminder_repo=self._app.reminder_repo,
                 event_dispatcher=self._app.container.event_dispatcher,
@@ -121,6 +121,7 @@ class SharedDbAppFactory:
             if settings.ollama_base_url
             else None
         )
+        semantic_search = SemanticSearch(db, embedder=ollama_embedder)
 
         self._app = App(
             settings=settings,
@@ -142,7 +143,7 @@ class SharedDbAppFactory:
             identity_map=IdentityMap(db),
             attachment_repo=AttachmentRepository(db),
             knowledge_search=KeywordSearch(db),
-            semantic_search=SemanticSearch(db),
+            semantic_search=semantic_search,
             plan_store=plan_store,
             reminder_repo=reminder_repo,
             event_dispatcher=container.event_dispatcher,

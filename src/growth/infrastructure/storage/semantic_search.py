@@ -1,10 +1,14 @@
 """Semantic (embedding-based) search over attachments.
 
-Implements the ``KnowledgeSearch`` port using a local, offline embedder
-(hashed character n-grams). Exact keyword matches are boosted so precise
-title hits still rank first; embedding similarity adds recall for typos
-and paraphrases. v0.6 can swap the embedder for a model-backed one
-without changing this class.
+Implements the ``KnowledgeSearch`` port using an injectable embedder.
+The default is a local, offline embedder (hashed character n-grams), so
+semantic search works with zero setup. A model-backed embedder (e.g.
+``OllamaEmbedder``) can be injected; if it fails with
+``EmbeddingUnavailableError`` (server down, timeout, bad payload), the
+search falls back to the offline embedder so queries never break.
+
+Exact keyword matches are boosted so precise title hits still rank
+first; embedding similarity adds recall for typos and paraphrases.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ import sqlite3
 from collections.abc import Sequence
 from typing import Any
 
+from growth.application.errors import EmbeddingUnavailableError
 from growth.domain.knowledge import Attachment
 from growth.domain.shared import SpaceId
 from growth.infrastructure.embeddings.local import (
@@ -38,6 +43,14 @@ class SemanticSearch:
     def __init__(self, db: sqlite3.Connection, embedder: Any | None = None) -> None:
         self._db = db
         self._embedder = embedder or LocalNGramEmbedder()
+        self._fallback = LocalNGramEmbedder()
+
+    def _embed(self, text: str) -> Sequence[float]:
+        """Embed with the configured model, falling back offline on failure."""
+        try:
+            return self._embedder.embed(text)
+        except EmbeddingUnavailableError:
+            return self._fallback.embed(text)
 
     def search(
         self,
@@ -52,7 +65,7 @@ class SemanticSearch:
         term hits). Hits with a zero score are excluded, so unrelated
         text never appears.
         """
-        query_vec = self._embedder.embed(query)
+        query_vec = self._embed(query)
         if not any(query_vec):
             return []
 
@@ -98,7 +111,7 @@ class SemanticSearch:
     ) -> float:
         """Embedding similarity (0..100) plus exact-keyword boost."""
         text = f"{attachment.title} {attachment.source_ref or ''}"
-        vec = self._embedder.embed(text)
+        vec = self._embed(text)
         sim = cosine_similarity(query_vec, vec)
 
         boost = 0.0

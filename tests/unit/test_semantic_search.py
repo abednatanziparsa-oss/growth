@@ -5,9 +5,11 @@ from __future__ import annotations
 import sqlite3
 from datetime import UTC, datetime
 
+from growth.application.errors import EmbeddingUnavailableError
 from growth.application.ports.knowledge import KnowledgeSearch
 from growth.domain.knowledge import Attachment, AttachmentTarget, content_hash
 from growth.domain.shared import DEFAULT_SPACE_ID, SpaceId
+from growth.infrastructure.embeddings.local import LocalNGramEmbedder
 from growth.infrastructure.storage.knowledge_repos import (
     AttachmentRepository,
     init_knowledge_db,
@@ -122,3 +124,53 @@ class TestSemanticSearch:
         hits = SemanticSearch(db).search("growth")
 
         assert hits[0].attachment.title == "growth notes.pdf"
+
+
+class _RecordingEmbedder:
+    """Deterministic fake embedder that records what it embedded."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def embed(self, text: str) -> list[float]:
+        self.calls.append(text)
+        return [1.0, 0.0]  # identical vector -> max cosine for all texts
+
+
+class _RaisingEmbedder:
+    """Fake embedder that always fails (simulates Ollama being down)."""
+
+    def embed(self, text: str) -> list[float]:
+        raise EmbeddingUnavailableError("server unreachable")
+
+
+class TestInjectedEmbedder:
+    def test_uses_injected_embedder(self) -> None:
+        db = _new_db()
+        repo = AttachmentRepository(db)
+        _attach(repo, title="growth roadmap.pdf")
+        embedder = _RecordingEmbedder()
+
+        hits = SemanticSearch(db, embedder=embedder).search("growth")
+
+        assert len(hits) == 1
+        assert embedder.calls[0] == "growth"  # query embedded first
+        assert any("growth roadmap.pdf" in c for c in embedder.calls)
+
+    def test_embedder_defaults_to_local(self) -> None:
+        db = _new_db()
+        engine = SemanticSearch(db)
+
+        assert isinstance(engine._embedder, LocalNGramEmbedder)
+
+    def test_falls_back_offline_when_embedder_unavailable(self) -> None:
+        db = _new_db()
+        repo = AttachmentRepository(db)
+        _attach(repo, title="growth roadmap.pdf")
+
+        hits = SemanticSearch(db, embedder=_RaisingEmbedder()).search("roadmapp")
+
+        # No exception: the offline embedder takes over and still finds
+        # the typo-tolerant match.
+        assert len(hits) == 1
+        assert hits[0].attachment.title == "growth roadmap.pdf"

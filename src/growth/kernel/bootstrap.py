@@ -133,10 +133,6 @@ def build_app(settings: Settings | None = None) -> App:
     identity_map = IdentityMap(db)
     attachment_repo = AttachmentRepository(db)
     knowledge_search = KeywordSearch(db)
-    semantic_search = SemanticSearch(db)
-    plan_store = PlanStore(db)
-    reminder_repo = ReminderRepository(db)
-    scheduler = Scheduler(reminder_repo, container.event_dispatcher)
     ollama_embedder = (
         OllamaEmbedder(
             base_url=settings.ollama_base_url,
@@ -145,6 +141,10 @@ def build_app(settings: Settings | None = None) -> App:
         if settings.ollama_base_url
         else None
     )
+    semantic_search = SemanticSearch(db, embedder=ollama_embedder)
+    plan_store = PlanStore(db)
+    reminder_repo = ReminderRepository(db)
+    scheduler = Scheduler(reminder_repo, container.event_dispatcher)
 
     plan_applier = PlanApplier(
         workspace_repo,

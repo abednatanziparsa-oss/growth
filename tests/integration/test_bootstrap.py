@@ -8,6 +8,7 @@ from growth.application.dtos import CanonicalPlan
 from growth.domain.planning import Workspace
 from growth.domain.shared import DEFAULT_SPACE_ID, InternalId, SpaceId
 from growth.infrastructure.config.settings import Settings
+from growth.infrastructure.embeddings.local import LocalNGramEmbedder
 from growth.infrastructure.storage.plan_store import PlanStore
 from growth.infrastructure.sync.engine import SyncEngine
 from growth.kernel.bootstrap import App, build_app
@@ -121,3 +122,10 @@ class TestBuildApp:
         assert app.ollama_embedder is not None
         assert app.ollama_embedder._base_url == "http://127.0.0.1:11434"
         assert app.ollama_embedder._model == "nomic-embed-text"
+        # semantic search uses the configured embedder
+        assert app.semantic_search._embedder is app.ollama_embedder
+
+    def test_semantic_search_uses_local_embedder_by_default(self, tmp_path) -> None:
+        app = build_app(Settings(_env_file=None, data_dir=tmp_path))
+
+        assert isinstance(app.semantic_search._embedder, LocalNGramEmbedder)
