@@ -31,7 +31,7 @@
 ### CI: ALL GREEN ✅
 - ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (362 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 37 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 38 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -165,6 +165,12 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 
 - [x] `infrastructure/embeddings/ollama.py`: httpx-based Ollama client, L2 normalized, all failure paths typed (`EmbeddingUnavailableError`) ✅
 - [x] `SemanticSearch` now takes any `Embeddings` impl + offline fallback on `EmbeddingUnavailableError`; bootstrap wires Ollama when configured; 4 new tests; CI: 362 passed, coverage 98% ✅
+## Session Log (2026-08-13) — console safety + cron dispatch
+
+- [x] **BUGFIX: CLI emoji crash on Windows cp1252** — live `growth reminder sweep`/`plan show` crashed with UnicodeEncodeError (emoji in output AND in plan titles from user YAML data). Hardcoded CLI emoji → ASCII tokens; `run()` reconfigures stdout/stderr with `errors=replace` ✅
+- [x] **Real scheduler dispatch**: cron job `Growth reminder sweep (daily)` (08:00 Asia/Tehran, session-bound) runs `growth reminder sweep` every day; announce-to-webchat delivery doesn't resolve (no configured channel), so the job is bound to the main session instead ✅
+- CI: 362 passed, coverage 98% ✅
+
 - [x] Settings `ollama_base_url` (None = offline) + `ollama_model` (bge-m3); bootstrap wires `App.ollama_embedder` when configured ✅
 - [x] 11 new tests (port conformance, normalization, zero-vector, failures, env overrides, wiring); CI: 358 passed, coverage 98% ✅
 
