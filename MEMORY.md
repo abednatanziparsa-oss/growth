@@ -29,9 +29,9 @@
 ## Current State (2026-08-12) — updated end of session
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (362 passed, 0 failed)
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (401 passed, 0 failed)
 - Coverage: **98%** (1896 statements, 29 missed)
-- Git: 38 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 39 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.4)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -50,6 +50,7 @@
 - **Reminders + scheduling engine** (v0.5, partial): Reminder aggregate + status lifecycle + `ReminderDue` event; SQLite `ReminderRepository` with recurrence JSON column + legacy migration; `RecurrenceRule` (daily/weekly/monthly, interval, until, count); `Scheduler.sweep()` fires due reminders, dispatches events, re-arms recurring series with failure isolation; CLI `reminder add --repeat/--interval/--until/--count`, `reminder list/due/fire/sweep` — all **100%**
 - **Model embeddings wired into SemanticSearch** (v0.6 groundwork): `OllamaEmbedder` (httpx-based, `POST /api/embed`, L2-normalized) behind the `Embeddings` port; `SemanticSearch` accepts any embedder and falls back to `LocalNGramEmbedder` on `EmbeddingUnavailableError` (offline-first, queries never break when the server is down); wired via `GROWTH_OLLAMA_BASE_URL` / `GROWTH_OLLAMA_MODEL` (bge-m3) — **100%**
 - **TodoistAdapter SDK 4.0 conformance + live E2E** (v0.2 hardening): verified every adapter call against installed todoist-api-python 4.0.0; fixed `is_completed` bug (SDK Task model has `completed_at`, not `is_completed`); E2E harness (`tests/integration/test_todoist_e2e.py`) ran against the REAL API — full round trip passed (unique project + delete-in-finally cleanup); findings: `get_tasks()` returns ACTIVE tasks only, completed-tasks window capped at 6 weeks, no-due-date tasks verifiable only via by_completion_date
+- **Google Calendar layer** (v0.5): `GoogleCalendarAdapter` (create/update/delete/list events, service-injected & mock-tested); `CalendarProjection` (pending reminder -> event, 30-min default, target in description); `CalendarSync` application use case (idempotent push via IdentityMap provider=gcal, no duplicate events, per-reminder failure isolation); `IdentityMapPort` (new application port); `run_oauth_flow` + `build_calendar_service` (installed-app OAuth, calendar.events scope); Settings `GROWTH_GOOGLE_CREDENTIALS_PATH`/`GROWTH_GOOGLE_TOKEN_PATH` (offline by default); CLI `calendar auth|push|list` — **all 100% covered**
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -79,7 +80,7 @@
 | **Total** | **98%** |
 
 ### What's NOT Yet Built (v0.5 -> v1.0)
-- v0.5 completion: **Google Calendar projection + real scheduler dispatch** <- **next** (needs OAuth creds)
+- v0.5 wrap-up: **live Google Calendar** (code ships; needs Parsa's OAuth credentials.json + one-time browser consent, then publish the app to Production so refresh tokens outlive 7 days)
 - AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
 - DecisionEngine, WorkflowEngine (v0.7)
 - Platform: plugin marketplace, desktop app, GraphQL (v1.0)
@@ -165,6 +166,16 @@ Parsa: «کار رو از سر بگیر همیشه» — no more piecemeal stops
 
 - [x] `infrastructure/embeddings/ollama.py`: httpx-based Ollama client, L2 normalized, all failure paths typed (`EmbeddingUnavailableError`) ✅
 - [x] `SemanticSearch` now takes any `Embeddings` impl + offline fallback on `EmbeddingUnavailableError`; bootstrap wires Ollama when configured; 4 new tests; CI: 362 passed, coverage 98% ✅
+## Session Log (2026-08-13) — Google Calendar layer (v0.5 code complete)
+
+- [x] `infrastructure/adapters/calendar.py`: `GoogleCalendarAdapter` (service injected, narrow CRUD), `run_oauth_flow`, `build_calendar_service`, `ProviderUnavailableError` mapping ✅
+- [x] `infrastructure/projections/calendar.py`: `CalendarProjection` — reminder → event payload (due_at start, +30 min, target in description) ✅
+- [x] `application/calendar_sync.py`: `CalendarSync.push` — idempotent via IdentityMap provider=gcal (create → update, no dupes), skips past-due, failure isolation; new `IdentityMapPort` keeps application ring hexagonal (import-linter caught the first draft's infra import — fixed) ✅
+- [x] CLI `calendar auth|push|list` + bootstrap `calendar_adapter`/`calendar_sync`/`authorize_calendar` ✅
+- [x] Deps: google-api-python-client 2.198, google-auth-oauthlib 1.4 ✅
+- [x] 39 new tests (projection, adapter w/ fakes, sync idempotency, CLI, bootstrap, console-safety entry point); CI: 401 passed, coverage 98%, import-linter 3/3; pushed `2f0ce45` ✅
+
+
 ## Session Log (2026-08-13) — console safety + cron dispatch
 
 - [x] **BUGFIX: CLI emoji crash on Windows cp1252** — live `growth reminder sweep`/`plan show` crashed with UnicodeEncodeError (emoji in output AND in plan titles from user YAML data). Hardcoded CLI emoji → ASCII tokens; `run()` reconfigures stdout/stderr with `errors=replace` ✅
