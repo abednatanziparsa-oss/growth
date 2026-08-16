@@ -51,5 +51,5 @@
 | Phase | Status |
 |---|---|
 | v0.1 – v0.5 | ✅ Complete (planning, sync, export, knowledge, reminders + Google Calendar + ICS) |
-| v0.6 | 🔄 Next — see [v0.6 implementation plan](plans/v0.6-ai-integration.md) |
+| v0.6 | 🔄 In progress — LLM chat + AI interpreter + PDF parser shipped; live smoke test + close-out pending (see [v0.6 implementation plan](plans/v0.6-ai-integration.md)) |
 | v0.7 / v1.0 | ⏳ Not started |

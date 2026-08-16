@@ -47,6 +47,8 @@ def init_knowledge_db(db: sqlite3.Connection) -> None:
             mime_type TEXT,
             source_ref TEXT,
             size_bytes INTEGER,
+            content_text TEXT,
+            summary TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )
@@ -61,7 +63,23 @@ def init_knowledge_db(db: sqlite3.Connection) -> None:
         "ON attachments (content_hash)"
         " WHERE content_hash IS NOT NULL"
     )
+    # v0.6 migration: add searchable content columns to databases
+    # created before the PDF parser existed. Idempotent — no-op when
+    # the columns are already present.
+    _ensure_column(db, "attachments", "content_text", "TEXT")
+    _ensure_column(db, "attachments", "summary", "TEXT")
     db.commit()
+
+
+def _ensure_column(db: sqlite3.Connection, table: str, column: str, decl: str) -> None:
+    """Add ``column`` to ``table`` when missing.
+
+    SQLite has no ``ADD COLUMN IF NOT EXISTS``; a PRAGMA check keeps
+    this idempotent across re-runs and upgrades.
+    """
+    columns = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+    if column not in columns:
+        db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 def _row_to_attachment(row: sqlite3.Row) -> Attachment:
@@ -76,6 +94,8 @@ def _row_to_attachment(row: sqlite3.Row) -> Attachment:
         mime_type=row["mime_type"],
         source_ref=row["source_ref"],
         size_bytes=row["size_bytes"],
+        content_text=row["content_text"],
+        summary=row["summary"],
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
     )
@@ -116,8 +136,8 @@ class AttachmentRepository:
                 INSERT INTO attachments (
                     id, space_id, kind, target_type, target_id, title,
                     content_hash, mime_type, source_ref, size_bytes,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    content_text, summary, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(attachment.id.value),
@@ -130,6 +150,8 @@ class AttachmentRepository:
                     attachment.mime_type,
                     attachment.source_ref,
                     attachment.size_bytes,
+                    attachment.content_text,
+                    attachment.summary,
                     attachment.created_at.isoformat(),
                     attachment.updated_at.isoformat(),
                 ),
@@ -138,13 +160,16 @@ class AttachmentRepository:
             self._db.execute(
                 """
                 UPDATE attachments SET title=?, mime_type=?, source_ref=?,
-                   size_bytes=?, updated_at=? WHERE id=?
+                   size_bytes=?, content_text=?, summary=?, updated_at=?
+                WHERE id=?
                 """,
                 (
                     attachment.title,
                     attachment.mime_type,
                     attachment.source_ref,
                     attachment.size_bytes,
+                    attachment.content_text,
+                    attachment.summary,
                     attachment.updated_at.isoformat(),
                     str(attachment.id.value),
                 ),
@@ -214,13 +239,16 @@ class KeywordSearch:
         if not terms:
             return []
 
-        # Build the SQL with one LIKE per term against both columns.
+        # Build the SQL with one LIKE per term against the title,
+        # source reference, and (v0.6) extracted content text.
         conditions: list[str] = []
         params: list[object] = []
         for term in terms:
             pattern = f"%{term}%"
-            conditions.append("(title LIKE ? OR source_ref LIKE ?)")
-            params.extend([pattern, pattern])
+            conditions.append(
+                "(title LIKE ? OR source_ref LIKE ? OR content_text LIKE ?)"
+            )
+            params.extend([pattern, pattern, pattern])
 
         where = " AND ".join(conditions)
         if space_id is not None:
@@ -252,27 +280,38 @@ class KeywordSearch:
 
     @staticmethod
     def _score(attachment: Attachment, terms: list[str]) -> float:
-        """Simple relevance: title hits weight more than ref hits."""
+        """Simple relevance: title hits weight more than ref/content hits."""
         score = 0.0
         title = attachment.title.lower()
         ref = (attachment.source_ref or "").lower()
+        content = (attachment.content_text or "").lower()
         for term in terms:
             t = term.lower()
             if t in title:
                 score += 2.0
             if t in ref:
                 score += 1.0
+            if t in content:
+                score += 1.0
         return score
 
     @staticmethod
     def _make_snippet(attachment: Attachment, terms: list[str]) -> str:
-        """Pick the field that matched and return a short snippet."""
+        """Return a snippet from the first field that matches a term."""
         title = attachment.title
         lower_title = title.lower()
-        for term in terms:
-            if term.lower() in lower_title:
-                return title[:120]
+        content = attachment.content_text or ""
         ref = attachment.source_ref or ""
-        if ref:
-            return ref[:120]
+        for term in terms:
+            t = term.lower()
+            if t in lower_title:
+                return title[:120]
+            if t in content.lower():
+                idx = content.lower().find(t)
+                start = max(0, idx - 60)
+                end = min(len(content), idx + 120)
+                prefix = "..." if start > 0 else ""
+                return f"{prefix}{content[start:end].strip()}"
+            if t in ref.lower():
+                return ref[:120]
         return ""

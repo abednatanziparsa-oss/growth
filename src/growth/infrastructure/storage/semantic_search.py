@@ -110,17 +110,23 @@ class SemanticSearch:
         terms: list[str],
     ) -> float:
         """Embedding similarity (0..100) plus exact-keyword boost."""
-        text = f"{attachment.title} {attachment.source_ref or ''}"
+        text = (
+            f"{attachment.title} {attachment.source_ref or ''} "
+            f"{attachment.content_text or ''}"
+        )
         vec = self._embed(text)
         sim = cosine_similarity(query_vec, vec)
 
         boost = 0.0
         title = attachment.title.lower()
         ref = (attachment.source_ref or "").lower()
+        content = (attachment.content_text or "").lower()
         for term in terms:
             if term in title:
                 boost += 2.0
             if term in ref:
+                boost += 1.0
+            if term in content:
                 boost += 1.0
 
         if boost == 0.0 and sim * 100.0 < MIN_SIM_SCORE:
@@ -129,13 +135,21 @@ class SemanticSearch:
 
     @staticmethod
     def _make_snippet(attachment: Attachment, terms: list[str]) -> str:
-        """Pick the field that matched and return a short snippet."""
+        """Return a snippet from the first field that matches a term."""
         title = attachment.title
         lower_title = title.lower()
-        for term in terms:
-            if term in lower_title:
-                return title[:120]
+        content = attachment.content_text or ""
         ref = attachment.source_ref or ""
-        if ref:
-            return ref[:120]
+        for term in terms:
+            t = term.lower()
+            if t in lower_title:
+                return title[:120]
+            if t in content.lower():
+                idx = content.lower().find(t)
+                start = max(0, idx - 60)
+                end = min(len(content), idx + 120)
+                prefix = "..." if start > 0 else ""
+                return f"{prefix}{content[start:end].strip()}"
+            if t in ref.lower():
+                return ref[:120]
         return ""

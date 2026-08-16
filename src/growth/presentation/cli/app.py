@@ -36,7 +36,7 @@ def version_callback(value: bool) -> None:
 
 app = typer.Typer(
     name="growth",
-    help="Growth OS — a personal growth operating system.",
+    help="Growth OS - a personal growth operating system.",
     no_args_is_help=True,
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
@@ -59,7 +59,7 @@ def main(
         ),
     ] = False,
 ) -> None:
-    """Growth OS — a personal growth operating system."""
+    """Growth OS - a personal growth operating system."""
 
 
 @plan_app.command(name="apply")
@@ -75,7 +75,7 @@ def plan_apply(
         ),
     ],
 ) -> None:
-    """Apply a YAML study plan — parse, interpret, store."""
+    """Apply a YAML study plan - parse, interpret, store."""
     app_ctx = build_app()
     ws = app_ctx.plan_applier.apply(source)
 
@@ -301,12 +301,12 @@ def sync_todoist(
     engine = app_ctx.sync_engine
     if engine is None:
         typer.echo(
-            "[ERROR] No sync engine available — missing provider token.",
+            "[ERROR] No sync engine available - missing provider token.",
             err=True,
         )
         raise typer.Exit(code=1)
 
-    # Project + diff — use the projection to generate the desired snapshot.
+    # Project + diff - use the projection to generate the desired snapshot.
     # Access engine internals for dry-run visibility; real sync uses engine.sync().
     base = engine._load_base("todoist")
     changeset = engine._differ.diff(engine._projection.project(plan), base)
@@ -426,14 +426,93 @@ def knowledge_attach(
         target_id=InternalId.from_string(target) if target else None,
         title=file.name,
         content_hash=h,
-        mime_type=None,
+        mime_type="application/pdf" if file.suffix.lower() == ".pdf" else None,
         source_ref=str(file.resolve()),
         size_bytes=len(data),
         created_at=now,
         updated_at=now,
     )
+
+    # v0.6: PDFs are parsed at attach time so their text becomes
+    # keyword- and semantically-searchable. Parsing failures never
+    # block attaching — metadata is stored either way.
+    pages: int | None = None
+    if file.suffix.lower() == ".pdf":
+        from growth.application.ports.document_parser import DocumentParseError
+
+        try:
+            doc = app_ctx.document_parser.extract(file)
+        except DocumentParseError as exc:
+            typer.echo(
+                f"[WARN] Could not extract text from {file.name}: {exc}",
+                err=True,
+            )
+        else:
+            attachment.content_text = doc.text
+            pages = doc.page_count
+
     app_ctx.attachment_repo.save(attachment)
-    typer.echo(f"[OK] Attached {file.name} (id={attachment.id}, hash={h[:12]}…)")
+    extra = (
+        f", {pages} page(s), {len(attachment.content_text or '')} char(s)"
+        if pages
+        else ""
+    )
+    typer.echo(
+        f"[OK] Attached {file.name} (id={attachment.id}, hash={h[:12]}...{extra})"
+    )
+
+
+@knowledge_app.command(name="extract")
+def knowledge_extract(
+    file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to a document (PDF) to extract text from.",
+        ),
+    ],
+    summarize: Annotated[
+        bool,
+        typer.Option(
+            "--summarize",
+            "-s",
+            help="Also generate an AI summary (requires GROWTH_AI_ENABLED "
+            "and a configured LLM backend).",
+        ),
+    ] = False,
+) -> None:
+    """Extract text from a document (PDF) — offline, nothing is stored."""
+    from growth.application.ports.document_parser import DocumentParseError
+
+    app_ctx = build_app()
+    try:
+        doc = app_ctx.document_parser.extract(file)
+    except DocumentParseError as exc:
+        typer.echo(f"[ERROR] {exc}", err=True)
+        raise typer.Exit(code=1) from None
+
+    typer.echo(
+        f"[OK] {doc.title} | {doc.page_count} page(s) | "
+        f"{len(doc.text)} char(s) | format={doc.format}"
+    )
+    if summarize:
+        result = app_ctx.ai_document_summarizer.summarize(doc.text, title=doc.title)
+        if result.summary is None:
+            typer.echo(
+                "[SKIP] AI summarization unavailable - enable "
+                "GROWTH_AI_ENABLED and configure an LLM backend."
+            )
+        else:
+            model = result.artifact.model or "unknown"
+            typer.echo(f"[AI:{model}] {result.summary}")
+    if doc.text:
+        preview = doc.text[:2000]
+        typer.echo(preview)
+        if len(doc.text) > len(preview):
+            typer.echo(f"... ({len(doc.text) - len(preview)} more chars)")
 
 
 @knowledge_app.command(name="list")
@@ -681,7 +760,7 @@ def reminder_due() -> None:
     for r in due:
         typer.echo(f"  [due] {r.id}  {r.title}  (due {r.due_at.isoformat()})")
     typer.echo(
-        f"\n{len(due)} reminder(s) due — 'growth reminder fire <id>' to mark fired."
+        f"\n{len(due)} reminder(s) due - 'growth reminder fire <id>' to mark fired."
     )
 
 
@@ -841,7 +920,7 @@ def calendar_export_ics(
     """Export pending reminders as an .ics file (no auth needed).
 
     Import the file into any calendar app (Google Calendar, Outlook,
-    Apple Calendar) — the zero-verification alternative to calendar push.
+    Apple Calendar) - the zero-verification alternative to calendar push.
     """
     app_ctx = build_app()
     ics_text, count = app_ctx.export_calendar_ics()

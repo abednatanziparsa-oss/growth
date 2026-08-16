@@ -40,6 +40,7 @@ dependencies = [
     "google-auth-oauthlib>=1.2",
     "pydantic>=2.5",
     "pydantic-settings>=2.1",
+    "pypdf>=6.16.1",
     "python-dotenv>=1.0.1",
     "pyyaml>=6.0.3",
     "structlog>=24.1",
@@ -61,7 +62,7 @@ dev = [
 # Reserved placeholders — declared now so the optional-dependency surface is
 # stable, populated when the corresponding phase needs them.
 ai = ["httpx>=0.27"]   # v0.6: ollama (httpx already present via todoist-api-python)
-pdf = []     # v0.6: pypdf, pdfplumber
+pdf = []     # v0.6: pypdf now a core dependency (knowledge attach extracts PDFs)
 storage = [] # v0.1: sqlalchemy, alembic
 
 [project.scripts]

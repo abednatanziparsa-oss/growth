@@ -118,6 +118,17 @@ class Attachment:
     size_bytes: int | None = None
     """Content size in bytes, when known."""
 
+    content_text: str | None = None
+    """Extracted text of the content (PDFs, office docs), when read.
+
+    v0.6 enrichment: populated by a ``DocumentParser`` at attach time
+    so documents become keyword- and semantically-searchable without
+    storing the original bytes.
+    """
+
+    summary: str | None = None
+    """AI-generated summary of ``content_text``, when requested."""
+
     created_at: datetime
     """Wall-clock creation time. Use the Clock port in real code."""
 

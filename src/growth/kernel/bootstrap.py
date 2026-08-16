@@ -51,7 +51,9 @@ from growth.infrastructure.sync.engine import SyncEngine, init_sync_state
 from growth.kernel.container import Container
 
 if TYPE_CHECKING:
+    from growth.application.ai_documents import AiDocumentSummarizer
     from growth.application.ai_interpreter import AiInterpreter
+    from growth.application.ports.document_parser import DocumentParser
     from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
 
 __all__ = ["App", "build_app"]
@@ -162,6 +164,23 @@ class App:
         return AiInterpreter(
             self.container.llm_chat,
             fallback=HeuristicInterpreter(),
+            model=self.settings.llm_model if self.settings.ai_enabled else None,
+        )
+
+    @property
+    def document_parser(self) -> DocumentParser:
+        """Parse local documents (PDFs today) for the knowledge substrate."""
+        from growth.infrastructure.parsers.pdf import PypdfParser
+
+        return PypdfParser()
+
+    @property
+    def ai_document_summarizer(self) -> AiDocumentSummarizer:
+        """Summarize extracted document text (LLM-assisted, offline-safe)."""
+        from growth.application.ai_documents import AiDocumentSummarizer
+
+        return AiDocumentSummarizer(
+            self.container.llm_chat,
             model=self.settings.llm_model if self.settings.ai_enabled else None,
         )
 
