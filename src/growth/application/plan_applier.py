@@ -61,9 +61,7 @@ class PlanApplier:
         self._plan_store = plan_store
 
     def apply(self, source_path: Path, space_id: SpaceId | None = None) -> Workspace:
-        space = space_id or DEFAULT_SPACE_ID
-        now = datetime.now(UTC)
-
+        """Apply a YAML plan file, parsing it first."""
         raw_text = source_path.read_text(encoding="utf-8")
         try:
             payload = yaml.safe_load(raw_text)
@@ -71,6 +69,26 @@ class PlanApplier:
             raise ValidationError(f"Invalid YAML: {exc}") from exc
         if not isinstance(payload, dict):
             raise ValidationError("YAML root must be a mapping")
+        return self.apply_payload(
+            payload, space_id=space_id, source_ref=str(source_path)
+        )
+
+    def apply_payload(
+        self,
+        payload: dict[str, Any],
+        *,
+        space_id: SpaceId | None = None,
+        source_ref: str | None = None,
+    ) -> Workspace:
+        """Materialise a plan tree from a parsed payload dict.
+
+        ``apply()`` delegates here after YAML parsing; AI-assisted
+        interpreters (v0.6) call this directly with the LLM-produced
+        payload, so both paths share one tree-building routine.
+        """
+        space = space_id or DEFAULT_SPACE_ID
+        now = datetime.now(UTC)
+        source = source_ref or "ai-apply"
 
         ws_name = payload.get("project_name", "Growth Plan")
         workspace = Workspace(
@@ -138,7 +156,7 @@ class PlanApplier:
                     title=ch_name,
                     space_id=space,
                     priority=ch_priority,
-                    source_ref=str(source_path),
+                    source_ref=source,
                     created_at=now,
                     updated_at=now,
                 )
@@ -149,7 +167,7 @@ class PlanApplier:
                         title=sub_name,
                         space_id=space,
                         parent_id=parent_task.id,
-                        source_ref=str(source_path),
+                        source_ref=source,
                         created_at=now,
                         updated_at=now,
                     )

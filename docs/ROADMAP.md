@@ -50,5 +50,6 @@
 
 | Phase | Status |
 |---|---|
-| Bootstrap | ✅ Complete — 6 commits, 37 source files, 14 tests passing |
-| v0.1 | Not started |
+| v0.1 – v0.5 | ✅ Complete (planning, sync, export, knowledge, reminders + Google Calendar + ICS) |
+| v0.6 | 🔄 Next — see [v0.6 implementation plan](plans/v0.6-ai-integration.md) |
+| v0.7 / v1.0 | ⏳ Not started |

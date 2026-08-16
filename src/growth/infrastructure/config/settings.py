@@ -103,6 +103,37 @@ class Settings(BaseSettings):
         description="Embedding model served by Ollama (bge-m3 is multilingual).",
     )
 
+    llm_base_url: str | None = Field(
+        default=None,
+        description=(
+            "OpenAI-compatible chat completions base URL (e.g. "
+            "https://models.github.ai/inference). When set together with "
+            "llm_api_key and ai_enabled, a real LLM client is wired at "
+            "bootstrap; None (default) keeps the system fully offline."
+        ),
+    )
+
+    llm_model: str = Field(
+        default="gpt-4o-mini",
+        description=(
+            "Model identifier served by the LLM endpoint (GitHub Models "
+            "free tier exposes gpt-4o-mini / gpt-4.1-mini)."
+        ),
+    )
+
+    llm_api_key: str | None = Field(
+        default=None,
+        description=(
+            "Bearer token for the LLM endpoint (a GitHub PAT for GitHub "
+            "Models). Loaded from env, never logged."
+        ),
+    )
+
+    llm_timeout: float = Field(
+        default=60.0,
+        description="Per-request timeout in seconds for LLM calls.",
+    )
+
     # --- Reserved provider token holders (loaded from env, never logged) ----
     # Declared as separate optional fields so the wiring in kernel/ can
     # detect presence without coupling to a provider subpackage.

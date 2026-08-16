@@ -23,6 +23,7 @@ __all__ = [
     "ApplicationError",
     "ConflictDetectedError",
     "EmbeddingUnavailableError",
+    "LLMUnavailableError",
     "PortError",
     "ProviderUnavailableError",
     "SyncError",
@@ -96,4 +97,13 @@ class EmbeddingUnavailableError(ApplicationError):
     Covers connection failures, HTTP errors, and malformed responses.
     Callers (e.g. semantic search) fall back to the offline
     ``LocalNGramEmbedder`` when this is raised.
+    """
+
+
+class LLMUnavailableError(ApplicationError):
+    """Raised when an LLM backend cannot produce a response.
+
+    Covers connection failures, HTTP errors, and malformed payloads.
+    Callers (e.g. the AI interpreter) fall back to deterministic
+    heuristics when this is raised, keeping queries offline-safe.
     """

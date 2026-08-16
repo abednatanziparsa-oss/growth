@@ -97,6 +97,54 @@ def plan_apply(
     typer.echo(f"   Tasks: {len(tasks)}")
 
 
+@plan_app.command(name="ai-apply")
+def plan_ai_apply(
+    text: Annotated[
+        str,
+        typer.Argument(help="Free-text plan description (any language)."),
+    ],
+    persist: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="Persist the interpreted plan (default is a dry run).",
+        ),
+    ] = False,
+) -> None:
+    """Interpret free text with an LLM into a plan (dry-run by default).
+
+    Shows the DecisionArtifact (model, prompt version, reasoning)
+    before applying. Requires GROWTH_AI_ENABLED=true plus
+    GROWTH_LLM_BASE_URL and GROWTH_LLM_API_KEY; without them the
+    command falls back to heuristic extraction and still works.
+    """
+    app_ctx = build_app()
+    interpretation = app_ctx.ai_interpreter.interpret(text)
+    artifact = interpretation.artifact
+    plan = interpretation.plan
+
+    subjects = plan.raw_payload.get("subjects", [])
+    chapters = sum(len(s.get("chapters", [])) for s in subjects)
+
+    typer.echo(
+        f"Model:          {artifact.model or 'heuristic (AI disabled/unavailable)'}"
+    )
+    if artifact.prompt_version:
+        typer.echo(f"Prompt version: {artifact.prompt_version}")
+    typer.echo(f"Reasoning:      {artifact.reasoning or '-'}")
+    typer.echo(f"Project:        {plan.project_name}")
+    typer.echo(f"Subjects:       {len(subjects)}")
+    typer.echo(f"Chapters:       {chapters}")
+
+    if not persist:
+        typer.echo()
+        typer.echo("[DRY-RUN] Nothing persisted. Re-run with --apply to save the plan.")
+        return
+
+    ws = app_ctx.plan_applier.apply_payload(plan.raw_payload)
+    typer.echo(f"[OK] Applied: {ws.title}")
+
+
 @plan_app.command(name="show")
 def plan_show() -> None:
     """Display the current plan tree."""

@@ -51,6 +51,7 @@ from growth.infrastructure.sync.engine import SyncEngine, init_sync_state
 from growth.kernel.container import Container
 
 if TYPE_CHECKING:
+    from growth.application.ai_interpreter import AiInterpreter
     from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
 
 __all__ = ["App", "build_app"]
@@ -144,6 +145,25 @@ class App:
         projection = TodoistProjection()
         adapter = TodoistAdapter(token)
         return SyncEngine(projection, adapter, self.identity_map, self.db)
+
+    @property
+    def ai_interpreter(self) -> AiInterpreter:
+        """Build the AI plan interpreter on-demand (always available).
+
+        Uses the container's LLM backend — a real cloud client when
+        AI is enabled and configured, otherwise a Noop that always
+        raises, which makes the interpreter fall back to heuristics.
+        """
+        from growth.application.ai_interpreter import AiInterpreter
+        from growth.infrastructure.interpreters.heuristic import (
+            HeuristicInterpreter,
+        )
+
+        return AiInterpreter(
+            self.container.llm_chat,
+            fallback=HeuristicInterpreter(),
+            model=self.settings.llm_model if self.settings.ai_enabled else None,
+        )
 
     def export_markdown(self, plan: CanonicalPlan) -> str:
         """Export a CanonicalPlan as a Markdown string."""

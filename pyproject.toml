@@ -126,7 +126,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests legitimately use asserts, magic values, and longer argument lists.
-"tests/**" = ["PLR2004", "S101", "ARG001", "ARG002", "N803"]
+"tests/**" = ["PLR2004", "S101", "ARG001", "ARG002", "N803", "RUF001"]
 # Noop implementations are intentionally stubby.
 "src/growth/infrastructure/noop/**" = ["ARG001", "ARG002"]
 # Kernel: imports infrastructure for wiring.

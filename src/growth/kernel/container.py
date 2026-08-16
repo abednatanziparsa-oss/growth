@@ -8,12 +8,15 @@ from growth.application.ports.ai_services import AiServices
 from growth.application.ports.clock import Clock
 from growth.application.ports.decision import DecisionEngine
 from growth.application.ports.event_dispatcher import EventDispatcher
+from growth.application.ports.llm import LLMChat
 from growth.application.ports.workflow import WorkflowEngine
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.events.sync_dispatcher import SyncEventDispatcher
+from growth.infrastructure.llm.openai_compatible import OpenAICompatibleChat
 from growth.infrastructure.noop.ai import NoopAiServices
 from growth.infrastructure.noop.clock import SystemClock
 from growth.infrastructure.noop.decision import NoopDecisionEngine
+from growth.infrastructure.noop.llm import NoopLlmChat
 from growth.infrastructure.noop.workflow import NoopWorkflowEngine
 
 __all__ = ["Container"]
@@ -35,6 +38,7 @@ class Container:
     ai_services: AiServices
     decision_engine: DecisionEngine
     workflow_engine: WorkflowEngine
+    llm_chat: LLMChat
 
     @classmethod
     def from_settings(cls, settings: Settings) -> Container:
@@ -55,4 +59,20 @@ class Container:
             ai_services=NoopAiServices(),
             decision_engine=NoopDecisionEngine(),
             workflow_engine=NoopWorkflowEngine(),
+            # LLM: wired only when AI is explicitly enabled AND a
+            # backend is fully configured (base URL + key). The
+            # explicit flag keeps the default offline — key presence
+            # alone never enables network calls.
+            llm_chat=(
+                OpenAICompatibleChat(
+                    base_url=settings.llm_base_url,
+                    model=settings.llm_model,
+                    api_key=settings.llm_api_key,
+                    timeout=settings.llm_timeout,
+                )
+                if settings.ai_enabled
+                and settings.llm_base_url is not None
+                and settings.llm_api_key is not None
+                else NoopLlmChat()
+            ),
         )

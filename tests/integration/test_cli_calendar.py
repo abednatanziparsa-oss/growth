@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from growth.domain.reminders import Reminder, ReminderTarget
@@ -23,13 +23,16 @@ def _add_reminder(factory: SharedDbAppFactory, *, title: str = "Study") -> None:
     app_ctx = factory()
     repo = app_ctx.reminder_repo
     assert repo is not None
-    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    now = datetime.now(UTC)
     repo.save(
         Reminder(
             id=InternalId(),
             space_id=DEFAULT_SPACE_ID,
             title=title,
-            due_at=datetime(2026, 8, 13, 18, 0, tzinfo=UTC),
+            # Due tomorrow: push/export skip past-due reminders, so the
+            # due time must stay in the future regardless of when the
+            # suite runs (the old hardcoded 2026-08-13 went stale).
+            due_at=now + timedelta(days=1),
             target_type=ReminderTarget.SPACE,
             created_at=now,
             updated_at=now,
