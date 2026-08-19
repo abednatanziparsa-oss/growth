@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from growth.application.ai_interpreter import AiInterpreter
     from growth.application.ports.document_parser import DocumentParser
     from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
+    from growth.infrastructure.decision.heuristic import HeuristicDecisionEngine
 
 __all__ = ["App", "build_app"]
 
@@ -183,6 +184,17 @@ class App:
             self.container.llm_chat,
             model=self.settings.llm_model if self.settings.ai_enabled else None,
         )
+
+    @property
+    def decision_engine(self) -> HeuristicDecisionEngine:
+        """Build the heuristic Decision Engine (advisory, deterministic).
+
+        Reads the task tree and returns recommendations; never mutates
+        state. Always available — no AI/network required.
+        """
+        from growth.infrastructure.decision.heuristic import HeuristicDecisionEngine
+
+        return HeuristicDecisionEngine(self.task_repo)
 
     def export_markdown(self, plan: CanonicalPlan) -> str:
         """Export a CanonicalPlan as a Markdown string."""

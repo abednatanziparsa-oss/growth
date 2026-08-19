@@ -217,6 +217,52 @@ app.add_typer(reminder_app, name="reminder")
 calendar_app = typer.Typer(help="Google Calendar commands.")
 app.add_typer(calendar_app, name="calendar")
 
+decide_app = typer.Typer(help="Decision engine commands (advisory).")
+app.add_typer(decide_app, name="decide")
+
+
+@decide_app.command(name="next-action")
+def decide_next_action() -> None:
+    """Recommend the single most actionable next task."""
+    app_ctx = build_app()
+    artifact = app_ctx.decision_engine.recommend("next_action")
+    rec = artifact.recommendation
+    if not rec:
+        typer.echo("No actionable tasks.")
+        return
+    prio = rec.get("priority") or "none"
+    typer.echo(f"Next action: {rec['title']}  [priority: {prio}]")
+    if rec.get("due_at"):
+        typer.echo(f"  due: {rec['due_at']}")
+    typer.echo(f"  reason: {artifact.reasoning}")
+
+
+@decide_app.command(name="blockers")
+def decide_blockers() -> None:
+    """List overdue (past-due) incomplete tasks."""
+    app_ctx = build_app()
+    artifact = app_ctx.decision_engine.recommend("blockers")
+    rec = artifact.recommendation
+    if not rec:
+        typer.echo("No overdue tasks.")
+        return
+    for item in rec:
+        typer.echo(f"- {item['title']}  (overdue {item['overdue_minutes']}m)")
+
+
+@decide_app.command(name="sort")
+def decide_sort() -> None:
+    """List incomplete tasks sorted by priority."""
+    app_ctx = build_app()
+    artifact = app_ctx.decision_engine.recommend("priority_sort")
+    rec = artifact.recommendation
+    if not rec:
+        typer.echo("No incomplete tasks.")
+        return
+    for item in rec:
+        prio = item.get("priority") or "none"
+        typer.echo(f"- [{prio}] {item['title']}")
+
 
 def _current_plan(app_ctx: App) -> CanonicalPlan | None:
     """Return the latest applied plan for the default space.
