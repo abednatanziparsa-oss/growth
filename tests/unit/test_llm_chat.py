@@ -65,6 +65,9 @@ class TestHappyPath:
         body = captured["body"]
         assert body["model"] == MODEL
         assert body["temperature"] == 0.7
+        # Non-streaming is explicit: some gateways (9Router/Kiro) stream
+        # by default and would otherwise return unparseable SSE chunks.
+        assert body["stream"] is False
         assert body["messages"] == [
             {"role": "system", "content": "be nice"},
             {"role": "user", "content": "plan this"},

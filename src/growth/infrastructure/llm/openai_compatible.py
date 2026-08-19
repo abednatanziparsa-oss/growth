@@ -82,6 +82,10 @@ class OpenAICompatibleChat:
                         {"role": "user", "content": user},
                     ],
                     "temperature": temperature,
+                    # Explicit non-streaming: some gateways (e.g. 9Router /
+                    # Kiro) stream by default and return SSE chunks, which
+                    # this adapter does not parse.
+                    "stream": False,
                 },
             )
             response.raise_for_status()

@@ -140,7 +140,7 @@ class _Factory:
             assert db is not None
             return _make_app(self._app.settings, self._app.container, db)
 
-        settings = Settings()
+        settings = Settings(_env_file=None)  # isolate from the dev .env
         configure_logging(settings)
         if self._llm is not None:
             container = Container(
