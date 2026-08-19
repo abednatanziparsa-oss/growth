@@ -30,10 +30,10 @@
 - Google Calendar adapter + projection
 
 ## v0.6 — AI Integration
-- Ollama backend (local, offline-first)
-- OpenAI / Anthropic backends (opt-in)
-- PDF parser (pypdf + AI-assisted)
-- AI-assisted interpreters and difficulty estimation
+- LLMChat port + OpenAI-compatible backend (9Router + Kiro primary from Iran)
+- Ollama backend (local, offline-first) via the Embeddings port
+- PDF parser (pypdf) + AI-assisted document summarization
+- AI-assisted plan interpretation (`plan ai-apply`)
 
 ## v0.7 — Decision & Workflow Engines
 - DecisionEngine: next-action, blockers, priority sorting
@@ -51,5 +51,5 @@
 | Phase | Status |
 |---|---|
 | v0.1 – v0.5 | ✅ Complete (planning, sync, export, knowledge, reminders + Google Calendar + ICS) |
-| v0.6 | 🔄 In progress — LLM chat + AI interpreter + PDF parser shipped; live smoke test + close-out pending (see [v0.6 implementation plan](plans/v0.6-ai-integration.md)) |
+| v0.6 | ✅ Complete — LLM chat + AI interpreter + PDF parser + live smoke test (9Router + Kiro, `kr/deepseek-3.2`) |
 | v0.7 / v1.0 | ⏳ Not started |

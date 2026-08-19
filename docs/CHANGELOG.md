@@ -2,6 +2,44 @@
 
 All notable changes to Growth OS.
 
+## [0.6.0] — 2026-08-19
+
+### Added
+- **LLMChat port** (`application/ports/llm.py`) + `LLMUnavailableError`
+- **OpenAICompatibleChat** — httpx-based, non-streaming, Bearer auth; all failures map to `LLMUnavailableError`
+- **AiInterpreter** — free-text → CanonicalPlan via prompt `growth-plan-json-v1`, heuristic fallback on LLM failure
+- **CLI `growth plan ai-apply <text> [--apply]`** — dry-run default, shows DecisionArtifact (model, reasoning)
+- **DocumentParser port + PypdfParser** (pypdf) — encrypted/corrupt → `DocumentParseError`
+- **AiDocumentSummarizer** — LLM Markdown summary via prompt `growth-doc-summary-v1`
+- **`knowledge attach <pdf>`** auto-extracts searchable text; `knowledge extract <file> [--summarize]`
+- **Settings** `GROWTH_LLM_BASE_URL/MODEL/API_KEY/TIMEOUT` + `GROWTH_AI_ENABLED` gate (offline-first default)
+- **Live provider verification (Iran)**: 9Router + Kiro (`kr/deepseek-3.2`) works; GitHub Models retired, OpenRouter geo-blocked, Gemini standard keys deprecated
+
+## [0.5.0] — 2026-08-13
+
+### Added
+- Reminders + scheduling: `Reminder` aggregate, `RecurrenceRule` (daily/weekly/monthly), `Scheduler.sweep()`, CLI `reminder add/list/due/fire/sweep`
+- Google Calendar: `GoogleCalendarAdapter`, idempotent `CalendarSync.push` via IdentityMap, CLI `calendar auth/push/list`
+- ICS export (RFC 5545, zero-auth) — CLI `calendar export-ics`
+- Console-safe CLI output (Windows cp1252 emoji crash fix)
+
+## [0.4.0] — 2026-08-12
+
+### Added
+- Knowledge substrate: `AttachmentRepository`, keyword search, `SemanticSearch` (offline n-gram embeddings, typo-tolerant)
+- `Embeddings` port + `LocalNGramEmbedder` (256-dim, zero deps) + `OllamaEmbedder` (v0.6 groundwork)
+- `PlanStore` — raw plan persisted for faithful export/sync reconstruction
+
+## [0.3.0] — 2026-08-12
+
+### Added
+- `MarkdownProjection` + CLI `export markdown`
+
+## [0.2.0] — 2026-08-10
+
+### Added
+- Real `TodoistAdapter` (SDK 4.0), `IdentityMap`, three-way `Differ` with conflict detection, `SyncEngine`, CLI `sync todoist`
+
 ## [0.1.0] — 2026-07-27
 
 ### Added

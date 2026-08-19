@@ -52,6 +52,7 @@ desktop.ini
 # --- Output artifacts -------------------------------------------------------
 *.log
 *.csv
+exports/
 
 # --- Aider ------------------------------------------------------------------
 .aider*
@@ -67,10 +68,15 @@ desktop.ini
 .opencode/
 .cluster/
 evolution-drafts/
+.agents/
+.obsidian/
+.obsidian-mcp/
+config/mcporter.json
 AGENTS.md
 HEARTBEAT.md
 IDENTITY.md
 SOUL.md
 TOOLS.md
 USER.md
+Growth.md
 memory/

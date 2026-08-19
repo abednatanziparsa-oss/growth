@@ -2,7 +2,7 @@
 
 **A personal growth operating system** — planning, knowledge management, learning, review, and execution in one cohesive system.
 
-> **Status:** v0.1 — domain aggregates, SQLite persistence, YAML plans, and CLI. Ready for real use.
+> **Status:** v0.6 — AI integration: planning, sync, export, knowledge (semantic search), reminders + Google Calendar, and AI-assisted plans & PDFs.
 
 ---
 
@@ -42,9 +42,15 @@ Interpreter  Projection (Todoist, Markdown, ...)
 
 | Command | What it does |
 |---|---|
-| `growth plan apply <file>` | Parse a YAML study plan and create workspace/project/goals/milestones/tasks |
-| `growth plan show` | Display the current plan tree |
-| `growth plan stats` | Show aggregate statistics (goals, milestones, tasks completed/total) |
+| `growth plan apply <file>` | Parse a YAML plan and create workspace/project/goals/milestones/tasks |
+| `growth plan ai-apply <text>` | Turn free-text into a structured plan via LLM (dry-run by default) |
+| `growth plan show` / `stats` | Display the current plan tree / aggregate statistics |
+| `growth sync todoist` | Two-way sync with Todoist (three-way diff + conflict detection) |
+| `growth export markdown` | Export the current plan as Markdown |
+| `growth knowledge attach/list/search` | Store, list, and search notes/files (keyword + semantic) |
+| `growth knowledge extract <file>` | Parse a PDF and optionally AI-summarize it |
+| `growth reminder add/list/due/sweep` | Create and manage reminders (recurring, scheduled) |
+| `growth calendar auth/push/list/export-ics` | Push reminders to Google Calendar or export `.ics` |
 | `growth --version` | Show installed version |
 
 **Example YAML:**
@@ -100,9 +106,10 @@ Three import-linter contracts enforced in CI:
 | Check | Status |
 |---|---|
 | ruff (lint + format) | ✅ |
-| mypy (strict mode, 50 source files) | ✅ |
+| mypy (strict mode, 81 source files) | ✅ |
 | import-linter (3 hexagonal contracts) | ✅ |
-| pytest (25 tests) | ✅ |
+| pytest (493 tests) | ✅ |
+| coverage | ✅ 98% |
 | Python 3.11 / 3.12 / 3.13 matrix | ✅ |
 
 ---
