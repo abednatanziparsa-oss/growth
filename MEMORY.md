@@ -24,16 +24,16 @@
 3. Presentation depends only on application + kernel (not infrastructure directly)
 4. Only `kernel/bootstrap.py` and `kernel/container.py` wire adapters
 5. Every optional port has a Noop default — system runs offline by default
-6. YAGNI: plugin registry, real adapters, workflow scheduling, AI backends deferred
+6. YAGNI: plugin registry, workflow scheduling deferred; AI backends exist behind ports but stay Noop-default (offline-first)
 
-## Current State (2026-08-12) — updated end of session
+## Current State (2026-08-20) — v0.6 complete + v0.7 DecisionEngine shipped
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (59 files), import-linter ✅ (3 kept), pytest ✅ (420 passed, 0 failed)
-- Coverage: **98%** (1896 statements, 29 missed)
-- Git: 43 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (83 files), import-linter ✅ (3 kept), pytest ✅ (514 passed, 1 skipped — live Todoist E2E needs token)
+- Coverage: **98%** (new v0.6/v0.7 files 100%)
+- Git: 58 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
-### What's Built (v0.1 → v0.4)
+### What's Built (v0.1 → v0.7)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
 - Domain events: WorkspaceCreated, ProjectCreated, GoalCreated, MilestoneCreated, TaskCreated, TaskCompleted
 - SQLite repos: file-based (~/.growth/growth.db), 5 repositories — **95-97% coverage**
@@ -53,6 +53,10 @@
 - **Google Calendar layer** (v0.5): `GoogleCalendarAdapter` (create/update/delete/list events, service-injected & mock-tested); `CalendarProjection` (pending reminder -> event, 30-min default, target in description); `CalendarSync` application use case (idempotent push via IdentityMap provider=gcal, no duplicate events, per-reminder failure isolation); `IdentityMapPort` (new application port); `run_oauth_flow` + `build_calendar_service` (installed-app OAuth, calendar.events scope); Settings `GROWTH_GOOGLE_CREDENTIALS_PATH`/`GROWTH_GOOGLE_TOKEN_PATH` (offline by default); CLI `calendar auth|push|list` — **all 100% covered**
 - **ICS export — zero-auth calendar** (v0.5.1): `IcsProjection` renders EventPayloads as RFC 5545 iCalendar (CRLF endings, value escaping, 75-octet folding, stable per-reminder UIDs, UTC-normalized); `App.export_calendar_ics()` -> (text, count); CLI `calendar export-ics` (default ~/.growth/reminders.ics, imports into any calendar app, no OAuth); fixed Windows CRLF translation bug (write_text -> CR CRLF, newline='') — **all 100% covered**
 - **PlanStore** (v0.4.1): raw plan persisted at apply → faithful export/sync reconstruction — **100%**
+- **AI chat + interpreter** (v0.6): `LLMChat` port (`application/ports/llm.py`) + `LLMUnavailableError`; `OpenAICompatibleChat` (httpx, non-streaming, Bearer auth, injectable client, all failures → `LLMUnavailableError`); `AiInterpreter` (free-text → CanonicalPlan via prompt `growth-plan-json-v1`, tolerant JSON parse, heuristic fallback, returns `DecisionArtifact`); CLI `plan ai-apply <text> [--apply]` (dry-run default); Settings `GROWTH_LLM_BASE_URL/MODEL/API_KEY/TIMEOUT` + `GROWTH_AI_ENABLED` gate — **all 100%**
+- **PDF parsing + AI summarization** (v0.6): `DocumentParser` port + `PypdfParser` (pypdf, encrypted/corrupt/missing → `DocumentParseError`); `AiDocumentSummarizer` (prompt `growth-doc-summary-v1`, 6000-char cap); `knowledge attach <pdf>` auto-extracts searchable `content_text`; `knowledge extract <file> [--summarize]`; idempotent schema migration (`content_text`/`summary`) — **all 100%**
+- **Live LLM smoke test** (v0.6, 2026-08-19): 9Router local gateway + Kiro (`kr/deepseek-3.2`) — only working cloud-LLM path from Iran; GitHub Models retired (410), OpenRouter geo-blocked (403), Gemini standard keys deprecated
+- **HeuristicDecisionEngine** (v0.7, 2026-08-20): real `DecisionEngine` impl (`infrastructure/decision/heuristic.py`) — queries `next_action` (highest-priority actionable task, leaf-first), `blockers` (overdue tasks), `priority_sort`; advisory-only, deterministic (no LLM), reads via `TaskRepository`; `App.decision_engine` lazy property + CLI `decide next-action|blockers|sort` — **100%**
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
 - Noop implementations for all optional ports
@@ -80,10 +84,9 @@
 | ports (incl. `knowledge.py`) | 100% |
 | **Total** | **98%** |
 
-### What's NOT Yet Built (v0.5 -> v1.0)
-- v0.5 wrap-up: **live Google Calendar DONE** ✅ (Parsa created a Desktop OAuth client via the new Google Auth Platform UI — scopes live under Data Access, test users under Audience; token stored at ~/.growth/token.json, env vars in .env; first real event pushed & listed live on 2026-08-13). Remaining: publish app to Production (or refresh token expires after 7 days in Testing mode)
-- AI integration: Ollama/OpenAI/Anthropic, PDF parser (v0.6)
-- DecisionEngine, WorkflowEngine (v0.7)
+### What's NOT Yet Built (v0.7 -> v1.0)
+- v0.5 wrap-up remaining: publish Google Calendar app to Production (or refresh token expires after 7 days in Testing mode)
+- WorkflowEngine (v0.7): declarative YAML workflows, dry-run, cancelable, per-run logging; review loop (planning → execution → review → improvement)
 - Platform: plugin marketplace, desktop app, GraphQL (v1.0)
 
 ## Decisions Made
@@ -97,6 +100,8 @@
 7. **Archive frozen** — `archive/v0-mvp/` is read-only, never modified.
 8. **Coverage target** — measure on src/growth, omit noop/ and __init__.py.
 9. **CanonicalPlan unfrozen** — changed from frozen=True to kw_only mutable dataclass so interpreters can populate `project_name` and `raw_payload` without monkey-patching private attrs.
+10. **LLM provider = 9Router + Kiro** — only working cloud-LLM path from Iran (verified 2026-08-19). OpenAI/Anthropic/Groq don't serve Iran; GitHub Models retired; OpenRouter geo-blocks; Gemini standard keys deprecated. Primary model `kr/deepseek-3.2`. Offline-first stays: `GROWTH_AI_ENABLED=false` default.
+11. **DecisionEngine is deterministic** — heuristic (no LLM), reproducible and free; LLM-assisted decisions (later) wrap this core. Recommendation payloads are plain dicts, not domain objects.
 
 ## Known Issues
 
@@ -112,6 +117,34 @@
 - Use `uv run` for all Python commands
 - **Status tables after turns:** When working on long multi-step coding tasks, end each turn with a Persian summary table (✅ انجام شده / 🔄 در حال انجام / ⏳ باقی‌مانده) showing what was completed, what's in progress, and what remains. This keeps Parsa oriented during long sessions without needing to scroll back.
 - **Resume work continuously (2026-08-12):** Parsa wants work to run end-to-end without piecemeal stops — do NOT ask "should I start?" between steps; pick up where the last session left off and push to completion (test → CI green → commit → push) in the same turn. Ask only when genuinely blocked on a decision.
+
+## Session Log (2026-08-20) — v0.7 DecisionEngine (part 1) ✅
+
+- [x] `HeuristicDecisionEngine` (`infrastructure/decision/heuristic.py`) — real `DecisionEngine` impl: `next_action` (leaf-first, priority→due→effort→title), `blockers` (overdue), `priority_sort`; advisory-only, deterministic, reads via `TaskRepository` ✅
+- [x] `App.decision_engine` lazy property + CLI `growth decide next-action|blockers|sort` ✅
+- [x] 16 unit + 5 integration tests; CI: 514 passed, coverage 98%, mypy 83 files, import-linter 3/3; pushed `248cb48` ✅
+
+---
+
+## Session Log (2026-08-19) — v0.6 close-out ✅
+
+- [x] Live LLM smoke test via 9Router + Kiro (`kr/deepseek-3.2`): `plan ai-apply` lifted free-text → 3 subjects/3 chapters; `knowledge extract --summarize` produced AI summary ✅
+- [x] Provider field test: GitHub Models retired (410), OpenRouter geo-blocked Iran (403), Gemini standard keys deprecated → 9Router + Kiro is the only working path ✅
+- [x] Close-out: README status → v0.6, CHANGELOG v0.2–v0.6, ROADMAP v0.6 → ✅ Complete, .gitignore cleanup (`.agents/`, `.obsidian/`, `.obsidian-mcp/`, `exports/`, `Growth.md`, `config/mcporter.json`), untracked `config/mcporter.json` (stays local) ✅
+- CI: 493 passed, 1 skipped, coverage 98%, 81 files, 57 commits; pushed `9075986` ✅
+
+---
+
+## Session Log (2026-08-16) — v0.6 AI Integration (part 1) ✅
+
+- [x] `LLMChat` port + `LLMUnavailableError`; `OpenAICompatibleChat` (httpx, Bearer auth, injectable MockTransport) ✅
+- [x] `AiInterpreter` — free-text → prompt `growth-plan-json-v1` → JSON → CanonicalPlan; tolerant JSON parse; heuristic fallback; `DecisionArtifact` ✅
+- [x] `PlanApplier.apply_payload()` refactor; CLI `plan ai-apply <text> [--apply]` (dry-run default) ✅
+- [x] `DocumentParser` port + `PypdfParser` (pypdf via Aliyun mirror); `AiDocumentSummarizer`; `knowledge attach <pdf>` + `knowledge extract <file> [--summarize]`; schema migration (`content_text`/`summary`) ✅
+- [x] Settings `GROWTH_LLM_*` + `GROWTH_AI_ENABLED` gate; container wiring ✅
+- CI: 493 passed, 1 skipped, coverage 98%, 81 files ✅
+
+---
 
 ## Session Log (2026-08-10)
 
