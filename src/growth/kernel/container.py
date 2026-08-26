@@ -17,7 +17,7 @@ from growth.infrastructure.noop.ai import NoopAiServices
 from growth.infrastructure.noop.clock import SystemClock
 from growth.infrastructure.noop.decision import NoopDecisionEngine
 from growth.infrastructure.noop.llm import NoopLlmChat
-from growth.infrastructure.noop.workflow import NoopWorkflowEngine
+from growth.infrastructure.workflow.engine import DeclarativeWorkflowEngine
 
 __all__ = ["Container"]
 
@@ -58,7 +58,7 @@ class Container:
             # and a concrete AiServices implementation.
             ai_services=NoopAiServices(),
             decision_engine=NoopDecisionEngine(),
-            workflow_engine=NoopWorkflowEngine(),
+            workflow_engine=DeclarativeWorkflowEngine(),
             # LLM: wired only when AI is explicitly enabled AND a
             # backend is fully configured (base URL + key). The
             # explicit flag keeps the default offline — key presence
