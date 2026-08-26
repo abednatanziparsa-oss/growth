@@ -1032,5 +1032,5 @@ def _make_console_encoding_safe() -> None:
 def run() -> None:
     """Console-script entry point."""
     _make_console_encoding_safe()
-    app(standalone_mode=False)
-    sys.exit(0)
+    code = app(standalone_mode=False)
+    sys.exit(code or 0)

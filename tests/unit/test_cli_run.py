@@ -55,3 +55,14 @@ class TestRun:
 
         assert exc_info.value.code == 0
         assert called == {"standalone_mode": False}
+
+    def test_run_propagates_nonzero_exit_code(self, monkeypatch) -> None:
+        def fake_app(*, standalone_mode: bool) -> int:
+            return 1
+
+        monkeypatch.setattr("growth.presentation.cli.app.app", fake_app)
+
+        with pytest.raises(SystemExit) as exc_info:
+            run()
+
+        assert exc_info.value.code == 1
