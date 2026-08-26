@@ -15,6 +15,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from growth.application.calendar_sync import CalendarSync
@@ -59,7 +60,13 @@ if TYPE_CHECKING:
     from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
     from growth.infrastructure.decision.heuristic import HeuristicDecisionEngine
 
-__all__ = ["App", "build_app", "register_workflow_yaml"]
+__all__ = [
+    "App",
+    "build_app",
+    "load_workflows_dir",
+    "persist_workflow_yaml",
+    "register_workflow_yaml",
+]
 
 
 @dataclass(slots=True)
@@ -342,3 +349,42 @@ def register_workflow_yaml(app: App, text: str) -> str:
     workflow = parse_workflow_yaml(text, builtin_workflow_steps(app))
     app.workflow_engine.register(workflow)
     return workflow.name
+
+
+def persist_workflow_yaml(app: App, text: str) -> str:
+    """Validate, persist, and register a workflow YAML document.
+
+    The document is written to ``app.settings.workflows_dir`` as
+    ``<name>.yaml`` (replacing any previous file with the same name)
+    and registered on the in-memory engine. Returns the workflow name.
+    """
+    from growth.infrastructure.workflow.loader import parse_workflow_yaml
+
+    workflow = parse_workflow_yaml(text, builtin_workflow_steps(app))
+    directory = app.settings.workflows_dir
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / f"{workflow.name}.yaml"
+    target.write_text(text, encoding="utf-8")
+    app.workflow_engine.register(workflow)
+    return workflow.name
+
+
+def load_workflows_dir(app: App, directory: Path | None = None) -> int:
+    """Load and register every ``*.yaml`` workflow from a directory.
+
+    Returns the number of workflows registered. Raises
+    ``WorkflowParseError`` on the first invalid file — explicit failure
+    beats silently skipping a broken workflow.
+    """
+    from growth.infrastructure.workflow.loader import parse_workflow_yaml
+
+    directory = directory or app.settings.workflows_dir
+    if not directory.is_dir():
+        return 0
+    count = 0
+    for path in sorted(directory.glob("*.yaml")):
+        text = path.read_text(encoding="utf-8")
+        workflow = parse_workflow_yaml(text, builtin_workflow_steps(app))
+        app.workflow_engine.register(workflow)
+        count += 1
+    return count

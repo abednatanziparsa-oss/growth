@@ -55,12 +55,16 @@ def parse_workflow_yaml(
     name = doc.get("name")
     if not isinstance(name, str) or not name.strip():
         raise WorkflowParseError("Workflow YAML requires a non-empty string 'name'.")
+    name = name.strip()
+    if "/" in name or "\\" in name or name in {".", ".."}:
+        raise WorkflowParseError(f"Workflow name {name!r} is not a safe filename.")
 
     trigger = doc.get("trigger")
     if not isinstance(trigger, str) or not trigger.strip():
         raise WorkflowParseError(
             f"Workflow '{name}' requires a non-empty string 'trigger'."
         )
+    trigger = trigger.strip()
 
     raw_steps = doc.get("steps", [])
     if not isinstance(raw_steps, list):

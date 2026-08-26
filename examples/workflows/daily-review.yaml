@@ -1,0 +1,18 @@
+# Example declarative workflow: a lightweight daily review.
+#
+# Steps wrap the deterministic Decision Engine (advisory, offline — no
+# AI, no network). Copy this file to ~/.growth/workflows/ so that
+# `growth workflow run daily-review` picks it up automatically:
+#
+#   mkdir -p ~/.growth/workflows
+#   cp examples/workflows/daily-review.yaml ~/.growth/workflows/
+#   growth workflow run daily-review          # or: --dry-run
+#
+# The trigger is metadata for schedulers; the engine fires on external
+# `run` calls for now (time-based triggering is a v1.0 platform item).
+name: daily-review
+trigger: time
+steps:
+  - blockers
+  - next-action
+  - priority-sort

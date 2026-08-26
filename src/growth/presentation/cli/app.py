@@ -23,7 +23,12 @@ import typer
 from growth import __version__
 from growth.application.dtos import CanonicalPlan
 from growth.domain.shared import DEFAULT_SPACE_ID
-from growth.kernel.bootstrap import App, build_app, register_workflow_yaml
+from growth.kernel.bootstrap import (
+    App,
+    build_app,
+    load_workflows_dir,
+    persist_workflow_yaml,
+)
 
 __all__ = ["app", "run", "version_callback"]
 
@@ -270,11 +275,11 @@ app.add_typer(workflow_app, name="workflow")
 
 @workflow_app.command(name="register")
 def workflow_register(path: Path) -> None:
-    """Register a workflow from a YAML file (in-memory, per-process)."""
+    """Persist and register a workflow from a YAML file."""
     app_ctx = build_app()
     try:
         text = path.read_text(encoding="utf-8")
-        name = register_workflow_yaml(app_ctx, text)
+        name = persist_workflow_yaml(app_ctx, text)
     except ValueError as exc:
         typer.echo(f"Failed to register workflow: {exc}")
         raise typer.Exit(code=1) from exc
@@ -283,8 +288,13 @@ def workflow_register(path: Path) -> None:
 
 @workflow_app.command(name="run")
 def workflow_run(name: str, dry_run: bool = False) -> None:
-    """Run a registered workflow (or dry-run it)."""
+    """Load workflows from the workflows dir, then run the named one."""
     app_ctx = build_app()
+    try:
+        load_workflows_dir(app_ctx)
+    except ValueError as exc:
+        typer.echo(f"Failed to load workflows: {exc}")
+        raise typer.Exit(code=1) from exc
     result = app_ctx.workflow_engine.run(name, dry_run=dry_run)
     if result.succeeded:
         typer.echo(f"Workflow '{name}': ok ({result.steps_completed} step(s)).")
@@ -295,6 +305,21 @@ def workflow_run(name: str, dry_run: bool = False) -> None:
     if result.note:
         typer.echo(f"  note: {result.note}")
     raise typer.Exit(code=1)
+
+
+@workflow_app.command(name="list")
+def workflow_list() -> None:
+    """List available workflows (files in the workflows dir)."""
+    app_ctx = build_app()
+    directory = app_ctx.settings.workflows_dir
+    names = (
+        sorted(p.stem for p in directory.glob("*.yaml")) if directory.is_dir() else []
+    )
+    if not names:
+        typer.echo("No workflows registered.")
+        return
+    for name in names:
+        typer.echo(name)
 
 
 def _current_plan(app_ctx: App) -> CanonicalPlan | None:

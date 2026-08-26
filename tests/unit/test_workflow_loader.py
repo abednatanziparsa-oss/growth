@@ -67,3 +67,13 @@ def test_unknown_step_rejected() -> None:
 def test_invalid_yaml_rejected() -> None:
     with pytest.raises(WorkflowParseError, match="Invalid YAML"):
         parse_workflow_yaml("name: [unclosed\n", _registry())
+
+
+def test_unsafe_name_rejected() -> None:
+    with pytest.raises(WorkflowParseError, match="safe filename"):
+        parse_workflow_yaml("name: ../evil\ntrigger: time\nsteps: []\n", _registry())
+
+
+def test_name_is_stripped() -> None:
+    wf = parse_workflow_yaml("name:  review \ntrigger: time\nsteps: []\n", _registry())
+    assert wf.name == "review"

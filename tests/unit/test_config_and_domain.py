@@ -10,7 +10,11 @@ import pytest
 from growth.application.errors import ApplicationError, ConflictDetectedError
 from growth.application.ports.clock import utc_now
 from growth.domain.shared import InternalId, SpaceId
-from growth.infrastructure.config.settings import Environment, Settings
+from growth.infrastructure.config.settings import (
+    Environment,
+    Settings,
+    default_data_dir,
+)
 from growth.infrastructure.logging.setup import (
     configure_logging,
     get_logger,
@@ -48,6 +52,10 @@ class TestSettings:
     def test_accepts_all_valid_log_levels(self) -> None:
         for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
             assert Settings(_env_file=None, log_level=level).log_level == level
+
+    def test_workflows_dir_defaults(self) -> None:
+        settings = Settings(_env_file=None)
+        assert settings.workflows_dir == default_data_dir() / "workflows"
 
     def test_env_prefix_loading(self, monkeypatch) -> None:
         monkeypatch.setenv("GROWTH_LOG_LEVEL", "debug")

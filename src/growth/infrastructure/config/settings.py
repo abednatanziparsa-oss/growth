@@ -79,6 +79,14 @@ class Settings(BaseSettings):
         description="Data directory for local storage (SQLite, sync state, etc.).",
     )
 
+    workflows_dir: Path = Field(
+        default_factory=lambda: default_data_dir() / "workflows",
+        description=(
+            "Directory of declarative workflow YAML files; "
+            "`growth workflow run` loads every *.yaml here before running."
+        ),
+    )
+
     # --- AI (all optional, all off by default) -------------------------------
     ai_enabled: bool = Field(
         default=False,
