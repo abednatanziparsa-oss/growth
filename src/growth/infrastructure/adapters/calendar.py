@@ -64,12 +64,19 @@ def run_oauth_flow(credentials_path: Path, token_path: Path) -> None:
 def build_calendar_service(token_path: Path) -> Any:
     """Build a Calendar API service from a previously stored token."""
     from google.oauth2.credentials import Credentials
+    from google_auth_httplib2 import AuthorizedHttp  # type: ignore[import-untyped]
     from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from httplib2 import Http  # type: ignore[import-untyped]
 
     creds = Credentials.from_authorized_user_file(  # type: ignore[no-untyped-call]
         str(token_path), SCOPES
     )
-    return build("calendar", "v3", credentials=creds, cache=_NoCache())
+    # httplib2 0.32 mis-handles empty proxy env vars (e.g. HTTP_PROXY=""):
+    # it resolves a broken proxy and times out instead of connecting
+    # directly. Disable proxy discovery explicitly so the API connects
+    # regardless of the ambient environment.
+    http = AuthorizedHttp(credentials=creds, http=Http(timeout=30, proxy_info=None))
+    return build("calendar", "v3", http=http, cache=_NoCache())
 
 
 class GoogleCalendarAdapter:

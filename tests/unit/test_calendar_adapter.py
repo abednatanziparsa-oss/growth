@@ -117,12 +117,25 @@ class TestGoogleCalendarAdapter:
             classmethod(lambda _cls, _path, _scopes: the_creds),
         )
 
-        def fake_build(
-            api: str, version: str, credentials: object | None = None, **kwargs: object
-        ) -> str:
+        http_kwargs: dict[str, object] = {}
+
+        class FakeHttp:
+            def __init__(self, **kwargs: object) -> None:
+                http_kwargs.update(kwargs)
+
+        monkeypatch.setattr("httplib2.Http", FakeHttp)
+
+        class FakeAuthorizedHttp:
+            def __init__(self, credentials: object, http: object) -> None:
+                self.credentials = credentials
+                self.http = http
+
+        monkeypatch.setattr("google_auth_httplib2.AuthorizedHttp", FakeAuthorizedHttp)
+
+        def fake_build(api: str, version: str, **kwargs: object) -> str:
             called["api"] = api
             called["version"] = version
-            called["creds"] = credentials
+            called["http"] = kwargs.get("http")
             called["cache"] = kwargs.get("cache")
             return "service"
 
@@ -134,11 +147,14 @@ class TestGoogleCalendarAdapter:
 
         assert service == "service"
         cache = called.pop("cache")
-        assert called == {
-            "api": "calendar",
-            "version": "v3",
-            "creds": the_creds,
-        }
+        http = called.pop("http")
+        assert called == {"api": "calendar", "version": "v3"}
+        assert isinstance(http, FakeAuthorizedHttp)
+        assert http.credentials is the_creds
+        assert isinstance(http.http, FakeHttp)
+        # httplib2 0.32 times out on empty proxy env vars (HTTP_PROXY="");
+        # the service must be built with proxy discovery disabled.
+        assert http_kwargs.get("proxy_info") is None
         assert cache is not None
         assert cache.get("url") is None
         assert cache.set("url", "resp") is None
