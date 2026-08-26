@@ -25,6 +25,7 @@ class NoopWorkflowRunResult:
     workflow_name: str
     succeeded: bool = False
     steps_completed: int = 0
+    errors: tuple[str, ...] = ()
     note: str = "Workflow engine disabled; no steps executed."
 
 

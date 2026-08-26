@@ -13,8 +13,9 @@ calls to obtain a fully-wired application object. It:
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from growth.application.calendar_sync import CalendarSync
 from growth.application.dtos import CanonicalPlan
@@ -54,10 +55,11 @@ if TYPE_CHECKING:
     from growth.application.ai_documents import AiDocumentSummarizer
     from growth.application.ai_interpreter import AiInterpreter
     from growth.application.ports.document_parser import DocumentParser
+    from growth.application.ports.workflow import WorkflowEngine
     from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
     from growth.infrastructure.decision.heuristic import HeuristicDecisionEngine
 
-__all__ = ["App", "build_app"]
+__all__ = ["App", "build_app", "register_workflow_yaml"]
 
 
 @dataclass(slots=True)
@@ -196,6 +198,11 @@ class App:
 
         return HeuristicDecisionEngine(self.task_repo)
 
+    @property
+    def workflow_engine(self) -> WorkflowEngine:
+        """Declarative workflow engine (container-wired, in-memory)."""
+        return self.container.workflow_engine
+
     def export_markdown(self, plan: CanonicalPlan) -> str:
         """Export a CanonicalPlan as a Markdown string."""
         from growth.infrastructure.projections.markdown import (
@@ -307,3 +314,31 @@ def build_app(settings: Settings | None = None) -> App:
         scheduler=scheduler,
         ollama_embedder=ollama_embedder,
     )
+
+
+def builtin_workflow_steps(
+    app: App,
+) -> dict[str, Callable[[dict[str, Any]], Any]]:
+    """Built-in workflow steps wrapping real use cases (advisory).
+
+    These wrap the deterministic Decision Engine queries so declarative
+    workflows can run them as steps without business logic in the engine.
+    """
+    return {
+        "next-action": lambda _: app.decision_engine.recommend("next_action"),
+        "blockers": lambda _: app.decision_engine.recommend("blockers"),
+        "priority-sort": lambda _: app.decision_engine.recommend("priority_sort"),
+    }
+
+
+def register_workflow_yaml(app: App, text: str) -> str:
+    """Parse a workflow YAML document and register it on ``app``.
+
+    Steps are resolved against the built-in step registry. Returns the
+    registered workflow name. Registration is in-memory (per-process).
+    """
+    from growth.infrastructure.workflow.loader import parse_workflow_yaml
+
+    workflow = parse_workflow_yaml(text, builtin_workflow_steps(app))
+    app.workflow_engine.register(workflow)
+    return workflow.name

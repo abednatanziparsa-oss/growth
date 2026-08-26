@@ -23,7 +23,7 @@ import typer
 from growth import __version__
 from growth.application.dtos import CanonicalPlan
 from growth.domain.shared import DEFAULT_SPACE_ID
-from growth.kernel.bootstrap import App, build_app
+from growth.kernel.bootstrap import App, build_app, register_workflow_yaml
 
 __all__ = ["app", "run", "version_callback"]
 
@@ -262,6 +262,39 @@ def decide_sort() -> None:
     for item in rec:
         prio = item.get("priority") or "none"
         typer.echo(f"- [{prio}] {item['title']}")
+
+
+workflow_app = typer.Typer(help="Declarative workflow commands.")
+app.add_typer(workflow_app, name="workflow")
+
+
+@workflow_app.command(name="register")
+def workflow_register(path: Path) -> None:
+    """Register a workflow from a YAML file (in-memory, per-process)."""
+    app_ctx = build_app()
+    try:
+        text = path.read_text(encoding="utf-8")
+        name = register_workflow_yaml(app_ctx, text)
+    except ValueError as exc:
+        typer.echo(f"Failed to register workflow: {exc}")
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"Registered workflow '{name}'.")
+
+
+@workflow_app.command(name="run")
+def workflow_run(name: str, dry_run: bool = False) -> None:
+    """Run a registered workflow (or dry-run it)."""
+    app_ctx = build_app()
+    result = app_ctx.workflow_engine.run(name, dry_run=dry_run)
+    if result.succeeded:
+        typer.echo(f"Workflow '{name}': ok ({result.steps_completed} step(s)).")
+        return
+    typer.echo(f"Workflow '{name}': FAILED ({result.steps_completed} step(s)).")
+    for err in result.errors:
+        typer.echo(f"  - {err}")
+    if result.note:
+        typer.echo(f"  note: {result.note}")
+    raise typer.Exit(code=1)
 
 
 def _current_plan(app_ctx: App) -> CanonicalPlan | None:

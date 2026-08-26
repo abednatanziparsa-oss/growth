@@ -186,6 +186,10 @@ disable_error_code = ["import-untyped"]
 module = "growth.infrastructure.parsers.yaml_parser"
 disable_error_code = ["import-untyped"]
 
+[[tool.mypy.overrides]]
+module = "growth.infrastructure.workflow.loader"
+disable_error_code = ["import-untyped"]
+
 # --- AI (all optional, all off by default) -------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"

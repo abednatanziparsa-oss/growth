@@ -61,6 +61,16 @@ class WorkflowRunResult(Protocol):
     def steps_completed(self) -> int:  # pragma: no cover - protocol shape
         ...
 
+    @property
+    def errors(self) -> tuple[str, ...]:  # pragma: no cover - protocol shape
+        """Step errors; empty on success (run stops at the first error)."""
+        ...
+
+    @property
+    def note(self) -> str:  # pragma: no cover - protocol shape
+        """Human-readable run note (e.g. cancellation reason)."""
+        ...
+
 
 @runtime_checkable
 class WorkflowEngine(Protocol):
