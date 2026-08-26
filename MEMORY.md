@@ -26,12 +26,12 @@
 5. Every optional port has a Noop default — system runs offline by default
 6. YAGNI: plugin registry, workflow scheduling deferred; AI backends exist behind ports but stay Noop-default (offline-first)
 
-## Current State (2026-08-20) — v0.6 complete + v0.7 DecisionEngine shipped
+## Current State (2026-08-26) — v0.7 COMPLETE + Google Calendar production live
 
 ### CI: ALL GREEN ✅
-- ruff lint ✅, ruff format ✅, mypy strict ✅ (83 files), import-linter ✅ (3 kept), pytest ✅ (514 passed, 1 skipped — live Todoist E2E needs token)
+- ruff lint ✅, ruff format ✅, mypy strict ✅ (86 files), import-linter ✅ (3 kept), pytest ✅ (547 passed, 1 skipped — live Todoist E2E needs token)
 - Coverage: **98%** (new v0.6/v0.7 files 100%)
-- Git: 58 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
+- Git: 65 commits on main, synced with remote `github.com/abednatanziparsa-oss/growth`
 
 ### What's Built (v0.1 → v0.7)
 - Domain aggregates: Workspace, Project, Goal, Milestone, Task, Priority
@@ -57,6 +57,9 @@
 - **PDF parsing + AI summarization** (v0.6): `DocumentParser` port + `PypdfParser` (pypdf, encrypted/corrupt/missing → `DocumentParseError`); `AiDocumentSummarizer` (prompt `growth-doc-summary-v1`, 6000-char cap); `knowledge attach <pdf>` auto-extracts searchable `content_text`; `knowledge extract <file> [--summarize]`; idempotent schema migration (`content_text`/`summary`) — **all 100%**
 - **Live LLM smoke test** (v0.6, 2026-08-19): 9Router local gateway + Kiro (`kr/deepseek-3.2`) — only working cloud-LLM path from Iran; GitHub Models retired (410), OpenRouter geo-blocked (403), Gemini standard keys deprecated
 - **HeuristicDecisionEngine** (v0.7, 2026-08-20): real `DecisionEngine` impl (`infrastructure/decision/heuristic.py`) — queries `next_action` (highest-priority actionable task, leaf-first), `blockers` (overdue tasks), `priority_sort`; advisory-only, deterministic (no LLM), reads via `TaskRepository`; `App.decision_engine` lazy property + CLI `decide next-action|blockers|sort` — **100%**
+- **DeclarativeWorkflowEngine** (v0.7, 2026-08-26): real `WorkflowEngine` (`infrastructure/workflow/engine.py`) — `register`/`run`/`dry-run` (no side effects)/`cancel` (cooperative)/`runs` history; failure isolation (stop at first error); steps wrap use cases, never raw domain/infra; port `WorkflowRunResult` extended with `errors`/`note`; wired in Container (replaces Noop) — **100%**
+- **Workflow YAML loader + CLI + persistence** (v0.7, 2026-08-26): `parse_workflow_yaml` (`infrastructure/workflow/loader.py`, name/trigger/steps validation, safe-filename check); `Settings.workflows_dir` (default `~/.growth/workflows`); bootstrap `persist_workflow_yaml`/`load_workflows_dir`/`builtin_workflow_steps` (next-action, blockers, priority-sort, reminder-sweep, export-ics); CLI `workflow register|run|list` — register persists, run auto-loads the dir (cross-process); examples `daily-review.yaml` + `review-loop.yaml` — **100%**
+- **CLI exit-code fix** (v0.7, 2026-08-26): `run()` discarded the typer exit code (`app(standalone_mode=False)` return ignored, always `sys.exit(0)`) — every failing command exited 0; now propagates. Verified live: failing → 1, success → 0
 - SyncEventDispatcher: pub/sub with failure isolation — **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
 - Noop implementations for all optional ports
@@ -84,10 +87,10 @@
 | ports (incl. `knowledge.py`) | 100% |
 | **Total** | **98%** |
 
-### What's NOT Yet Built (v0.7 -> v1.0)
-- v0.5 wrap-up remaining: publish Google Calendar app to Production (or refresh token expires after 7 days in Testing mode)
-- WorkflowEngine (v0.7): declarative YAML workflows, dry-run, cancelable, per-run logging; review loop (planning → execution → review → improvement)
-- Platform: plugin marketplace, desktop app, GraphQL (v1.0)
+### What's NOT Yet Built (v1.0)
+- Google Calendar production: **DONE 2026-08-26** ✅ — app published (In production) + fresh token under production rules (no 7-day expiry)
+- Platform: plugin marketplace, desktop app (PySide6), GraphQL API, multi-user spaces (v1.0)
+- LLM-assisted decisions wrapping the deterministic core; planning/improvement workflow steps (both need LLM; advisory)
 
 ## Decisions Made
 
@@ -102,6 +105,8 @@
 9. **CanonicalPlan unfrozen** — changed from frozen=True to kw_only mutable dataclass so interpreters can populate `project_name` and `raw_payload` without monkey-patching private attrs.
 10. **LLM provider = 9Router + Kiro** — only working cloud-LLM path from Iran (verified 2026-08-19). OpenAI/Anthropic/Groq don't serve Iran; GitHub Models retired; OpenRouter geo-blocks; Gemini standard keys deprecated. Primary model `kr/deepseek-3.2`. Offline-first stays: `GROWTH_AI_ENABLED=false` default.
 11. **DecisionEngine is deterministic** — heuristic (no LLM), reproducible and free; LLM-assisted decisions (later) wrap this core. Recommendation payloads are plain dicts, not domain objects.
+12. **httplib2 must run with `proxy_info=None`** — empty proxy env vars (`HTTP_PROXY=`/`HTTPS_PROXY=`/`ALL_PROXY=`, set by the OpenClaw runtime) make httplib2 0.32 connect to a broken proxy and time out (`WinError 10060`). `build_calendar_service` now passes `Http(timeout=30, proxy_info=None)`. Lesson: when Google API calls time out but curl/sockets work, suspect httplib2 + proxy env.
+13. **`uv run --offline` after pyproject.toml changes** — any pyproject edit makes uv re-resolve the build and fetch `hatchling` from pypi.org, which is unreachable from Iran (os error 10061). Use `uv run --offline <cmd>` (works from cache).
 
 ## Known Issues
 
@@ -117,6 +122,16 @@
 - Use `uv run` for all Python commands
 - **Status tables after turns:** When working on long multi-step coding tasks, end each turn with a Persian summary table (✅ انجام شده / 🔄 در حال انجام / ⏳ باقی‌مانده) showing what was completed, what's in progress, and what remains. This keeps Parsa oriented during long sessions without needing to scroll back.
 - **Resume work continuously (2026-08-12):** Parsa wants work to run end-to-end without piecemeal stops — do NOT ask "should I start?" between steps; pick up where the last session left off and push to completion (test → CI green → commit → push) in the same turn. Ask only when genuinely blocked on a decision.
+
+## Session Log (2026-08-26) — MEMORY fix + v0.7 complete + calendar bugfix ✅
+
+- [x] MEMORY.md updated directly (Hermes policy: explicit user ask = ordinary file edit); committed `3d29ec7` with `git push 2>$null` → EXIT 0 (lesson applied) ✅
+- [x] **v0.7 WorkflowEngine** shipped in 5 commits: `ccfffce` (engine core), `c234a8a` (YAML loader + CLI), `026cc4d` (CLI exit-code fix), `6efe145` (persistence + auto-load + list), `4d21ed5` (close-out: review-loop example + status docs) ✅
+- [x] Live CLI verified: `workflow run daily-review` → ok (3 steps), `workflow run review-loop` → ok (5 steps), cross-process persistence works ✅
+- [x] **Google Calendar production + bugfix**: app was already In production; fresh token issued (no expiry); `calendar list` failed with WinError 10060 → root cause: httplib2 0.32 + empty proxy env vars → fix `Http(proxy_info=None)` in `build_calendar_service` (commit `2e8d429`); live verified `calendar list` → EXIT 0 ✅
+- [x] CI at close: 547 passed, coverage 98%, mypy 86 files, import-linter 3/3, 65 commits ✅
+
+---
 
 ## Session Log (2026-08-20) — v0.7 DecisionEngine (part 1) ✅
 
