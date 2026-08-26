@@ -80,6 +80,26 @@ def test_workflow_run_with_builtin_step(monkeypatch, tmp_path) -> None:
     assert "ok (1 step(s))" in result.stdout
 
 
+def test_workflow_run_review_loop_with_execution_steps(monkeypatch, tmp_path) -> None:
+    factory = _factory(tmp_path)
+    monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+    path = yaml_file(
+        """
+        name: review-loop
+        trigger: time
+        steps:
+          - reminder-sweep
+          - export-ics
+          - next-action
+        """
+    )
+    runner.invoke(app, ["workflow", "register", str(path)])
+
+    result = runner.invoke(app, ["workflow", "run", "review-loop"])
+    assert result.exit_code == 0
+    assert "ok (3 step(s))" in result.stdout
+
+
 def test_workflow_list(monkeypatch, tmp_path) -> None:
     factory = _factory(tmp_path)
     monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)

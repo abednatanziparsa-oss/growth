@@ -2,6 +2,18 @@
 
 All notable changes to Growth OS.
 
+## [0.7.0] — 2026-08-26
+
+### Added
+- **HeuristicDecisionEngine** — deterministic `DecisionEngine` (no LLM): `next_action` (leaf-first), `blockers` (overdue), `priority_sort`; CLI `growth decide next-action|blockers|sort`
+- **DeclarativeWorkflowEngine** — real `WorkflowEngine`: register/run/dry-run/cancel, per-run history, step failure isolation; steps wrap use cases, never raw domain/infrastructure
+- **Workflow YAML loader** — validated declarative definitions (name/trigger/steps, safe filenames, unknown-step errors)
+- **Workflow persistence + CLI** — `workflow register <file>` persists to `~/.growth/workflows/`, `workflow run <name> [--dry-run]` auto-loads the directory (cross-process), `workflow list`; examples `daily-review` and `review-loop`
+- **Built-in workflow steps** — next-action, blockers, priority-sort (Decision Engine), reminder-sweep, export-ics
+
+### Fixed
+- **CLI exit codes** — `run()` now propagates the typer exit code; failing commands exit non-zero instead of always 0
+
 ## [0.6.0] — 2026-08-19
 
 ### Added

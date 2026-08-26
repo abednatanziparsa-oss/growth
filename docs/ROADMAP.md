@@ -35,10 +35,10 @@
 - PDF parser (pypdf) + AI-assisted document summarization
 - AI-assisted plan interpretation (`plan ai-apply`)
 
-## v0.7 — Decision & Workflow Engines
-- DecisionEngine: next-action, blockers, priority sorting
-- WorkflowEngine: declarative YAML workflows, dry-run, cancelable
-- Review loop: planning → execution → review → improvement
+## v0.7 — Decision & Workflow Engines — Complete ✅
+- DecisionEngine: next-action, blockers, priority sorting ✅
+- WorkflowEngine: declarative YAML workflows, dry-run, cancelable, persisted (`~/.growth/workflows`) ✅
+- Review loop: execution → review shipped as `examples/workflows/review-loop.yaml`; planning/improvement advisory (LLM-assisted later) ✅
 
 ## v1.0 — Platform
 - Plugin marketplace
@@ -52,4 +52,5 @@
 |---|---|
 | v0.1 – v0.5 | ✅ Complete (planning, sync, export, knowledge, reminders + Google Calendar + ICS) |
 | v0.6 | ✅ Complete — LLM chat + AI interpreter + PDF parser + live smoke test (9Router + Kiro, `kr/deepseek-3.2`) |
-| v0.7 / v1.0 | ⏳ Not started |
+| v0.7 | ✅ Complete — heuristic Decision Engine + declarative Workflow Engine (dry-run, cancelable, persisted) + review-loop example |
+| v1.0 | ⏳ Not started |

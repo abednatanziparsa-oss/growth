@@ -23,6 +23,7 @@ from growth.application.dtos import CanonicalPlan
 from growth.application.plan_applier import PlanApplier
 from growth.application.ports.event_dispatcher import EventDispatcher
 from growth.application.scheduler import Scheduler
+from growth.domain.shared import DEFAULT_SPACE_ID
 from growth.infrastructure.config.settings import Settings
 from growth.infrastructure.embeddings.ollama import OllamaEmbedder
 from growth.infrastructure.logging.setup import configure_logging
@@ -335,6 +336,10 @@ def builtin_workflow_steps(
         "next-action": lambda _: app.decision_engine.recommend("next_action"),
         "blockers": lambda _: app.decision_engine.recommend("blockers"),
         "priority-sort": lambda _: app.decision_engine.recommend("priority_sort"),
+        "reminder-sweep": lambda _: (
+            app.scheduler.sweep(DEFAULT_SPACE_ID) if app.scheduler is not None else None
+        ),
+        "export-ics": lambda _: app.export_calendar_ics(),
     }
 
 

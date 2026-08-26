@@ -2,7 +2,7 @@
 
 **A personal growth operating system** — planning, knowledge management, learning, review, and execution in one cohesive system.
 
-> **Status:** v0.6 — AI integration: planning, sync, export, knowledge (semantic search), reminders + Google Calendar, and AI-assisted plans & PDFs.
+> **Status:** v0.7 — Decision & Workflow Engines: heuristic next-action/blockers/sorting, declarative YAML workflows (dry-run, cancelable, persisted), review-loop example.
 
 ---
 
