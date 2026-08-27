@@ -114,7 +114,8 @@
 
 ## Known Issues
 
-1. **Token scopes limited** - `gh` token has `gist, read:org, repo` but no `workflow` or `delete_repo`. CI workflow push to a new repo would fail; rename/delete must be done from GitHub UI.
+1. **GitHub Actions expressions: single quotes ONLY** (2026-08-27, RESOLVED after 40+ dead runs) - `if: matrix.python-version == "3.11"` (double quotes) is a parse error at GitHub's expression layer: the run dies in 0s as `startup_failure` with ZERO jobs, workflow name shows as the file path, and no annotation is exposed via the check-runs API for this repo. gh's "workflow file issue" hint is a guess. Diagnosed by 14-smoke-workflow bisection: triggers/concurrency/matrix/needs/name-CI/setup-uv all innocent; the double-quoted `if` was the sole killer. Two stacked bugs had silenced CI since commit #1 (also: matrix was mis-indented under fail-fast). Rule: always single-quote string literals in `if:` expressions.
+2. **pytest unraisable noise on Python 3.13.x** - `AttributeError('pathlib._local.PurePosixPath' has no '_tail_cached')` during GC of Path objects from earlier tests fails `error`-treated warnings on 3.13 (CI) but not 3.11/3.12. Mitigated with `ignore::pytest.PytestUnraisableExceptionWarning` in pyproject filterwarnings (environment artifact, not a leak).
 2. **types-PyYAML** - not installed. mypy config suppresses import-untyped for yaml files.
 3. **Export/sync legacy fallback** - DBs created before PlanStore (v0.4.1) export header-only plans; re-run `plan apply` to persist the raw plan.
 
@@ -127,16 +128,16 @@
 - **Status tables after turns:** When working on long multi-step coding tasks, end each turn with a Persian summary table (✅ انجام شده / 🔄 در حال انجام / ⏳ باقی‌مانده) showing what was completed, what's in progress, and what remains. This keeps Parsa oriented during long sessions without needing to scroll back.
 - **Resume work continuously (2026-08-12):** Parsa wants work to run end-to-end without piecemeal stops - do NOT ask "should I start?" between steps; pick up where the last session left off and push to completion (test → CI green → commit → push) in the same turn. Ask only when genuinely blocked on a decision.
 
-## Session Log (2026-08-27) — v0.8 LLM-assisted decisions + review loop ✅
+## Session Log (2026-08-27) — v0.8 LLM-assisted decisions + review loop + CI resurrection ✅
 
 - [x] `LlmDecisionEngine` (`application/llm_decisions.py`) + `PlanReviewer`/`PlanImprover` (`application/plan_review.py`) — both **100% covered** ✅
 - [x] Bootstrap: `App.decision_engine` → LLM-wrapped over new `App.heuristic_decision_engine`; builtin steps + `plan-review`/`plan-improve`; CLI `decide` shows `[AI: model]` ✅
 - [x] heuristic `_context` → `context` (port conformance, ruff ARG002 per-file ignore added)
 - [x] `SharedDbAppFactory` hermetic (`Settings(_env_file=None)`) — dev .env had `GROWTH_AI_ENABLED=true` and would have hit the LLM from decide tests ✅
 - [x] CI: 573 passed / 1 skipped, 98% (new files 100%), mypy 89 files, import-linter 3/3, ruff clean; pushed `bd37813` ✅
-- [x] Live-verified: `decide next-action` with mock OpenAI-compatible server (advice rendered, `[AI: mock/local]`); backend down → silent fallback; empty blockers → LLM skipped; `workflow run review-demo` (plan-review + plan-improve) → ok, EXIT 0 ✅
+- [x] Live-verified with REAL 9Router + Kiro (`kr/deepseek-3.2`, running as of 23:54): `decide next-action` shows `[AI: kr/deepseek-3.2]` + advice; plan-review/plan-improve workflow ok ✅
+- [x] **CI RESURRECTED** — GitHub Actions had NEVER run (0s startup failures since commit #1, ~45 runs): gh token was missing `workflow` scope (Parsa ran `gh auth refresh -s workflow`), then 14-smoke bisection isolated the double-quoted `if` expression; real pipeline restored `7f4a9b2`+`33289ef`; **first GREEN run 33117201856 (1m35s, py3.11/3.12/3.13)** — py313 needed the unraisable-warning ignore ✅
 - [x] Docs: README v0.8 + decide/workflow command rows, CHANGELOG 0.8.0, ROADMAP v0.8 ✅
-- Note: 9Router gateway (localhost:20128) was down this session — AI path verified via local mock instead
 
 ## Session Log (2026-08-26) — MEMORY fix + v0.7 complete + calendar bugfix ✅
 
