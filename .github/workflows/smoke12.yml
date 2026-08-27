@@ -1,0 +1,16 @@
+name: smoke12
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - run: echo ok
+      - if: ${{ matrix.python-version == '3.11' }}
+        run: echo "explicit-braces-single-quote ok"
