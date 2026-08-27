@@ -1,0 +1,19 @@
+name: smoke10
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "test ok"
+      - if: matrix.python-version == "3.11"
+        run: echo "if-expression ok"
