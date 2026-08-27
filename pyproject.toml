@@ -206,6 +206,11 @@ markers = [
 ]
 filterwarnings = [
     "error",
+    # Python 3.13.x GC artifact: pytest's unraisable plugin reports
+    # spurious AttributeError('_tail_cached') from pathlib internals
+    # during deallocation of Path objects created by earlier tests.
+    # Environment noise, not a product bug - do not fail on it.
+    "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::DeprecationWarning:pytest.*",
 ]
 
