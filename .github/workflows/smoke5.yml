@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "lint ok"
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "smoke5 ok"
