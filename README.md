@@ -1,8 +1,8 @@
-# Growth OS
+﻿# Growth OS
 
-**A personal growth operating system** — planning, knowledge management, learning, review, and execution in one cohesive system.
+**A personal growth operating system** â€” planning, knowledge management, learning, review, and execution in one cohesive system.
 
-> **Status:** v0.7 — Decision & Workflow Engines: heuristic next-action/blockers/sorting, declarative YAML workflows (dry-run, cancelable, persisted), review-loop example.
+> **Status:** v0.8 - LLM-assisted Decisions & Review Loop: heuristic recommendations enriched with AI rationale (offline-safe fallback), plan-review/plan-improve workflow steps.
 
 ---
 
@@ -12,7 +12,7 @@
 git clone https://github.com/abednatanziparsa-oss/growth
 cd growth
 uv sync --all-extras
-uv run growth --version    # → growth-os 0.1.0.dev0
+uv run growth --version    # â†’ growth-os 0.1.0.dev0
 ```
 
 ### Your first plan (30 seconds)
@@ -34,9 +34,9 @@ Growth OS converts structured YAML study plans into a full task tree:
 
 ```
 Your YAML
-  ↓
-Parser → PlanApplier → SQLite DB
-  ↓           ↓
+  â†“
+Parser â†’ PlanApplier â†’ SQLite DB
+  â†“           â†“
 Interpreter  Projection (Todoist, Markdown, ...)
 ```
 
@@ -51,6 +51,8 @@ Interpreter  Projection (Todoist, Markdown, ...)
 | `growth knowledge extract <file>` | Parse a PDF and optionally AI-summarize it |
 | `growth reminder add/list/due/sweep` | Create and manage reminders (recurring, scheduled) |
 | `growth calendar auth/push/list/export-ics` | Push reminders to Google Calendar or export `.ics` |
+| `growth decide next-action/blockers/sort` | Advisory recommendations (AI-enriched when `GROWTH_AI_ENABLED=true`) |
+| `growth workflow register/run/list` | Declarative YAML workflows (plan review + AI improvement loop) |
 | `growth --version` | Show installed version |
 
 **Example YAML:**
@@ -60,7 +62,7 @@ project_name: "Summer Study"
 
 subjects:
   - name: "Python"
-    emoji: "🐍"
+    emoji: "ðŸ"
     priority: "high"
     chapters:
       - name: "Async Programming"
@@ -80,18 +82,18 @@ standard_subtasks:
 Growth OS follows **hexagonal (ports & adapters)** architecture with strict dependency enforcement:
 
 ```
-domain ← application ← presentation
-               ↖ kernel (composition root)
-infrastructure → kernel
+domain â† application â† presentation
+               â†– kernel (composition root)
+infrastructure â†’ kernel
 ```
 
 | Ring | Purpose |
 |---|---|
-| **domain/** | Pure model — Workspace, Project, Goal, Milestone, Task. No I/O, no framework deps. |
+| **domain/** | Pure model â€” Workspace, Project, Goal, Milestone, Task. No I/O, no framework deps. |
 | **application/** | Use cases + ports (Protocols). 10 port interfaces defined. |
-| **infrastructure/** | Adapters — SQLite repos, YAML parser, Todoist projection/adapter, config, logging. |
+| **infrastructure/** | Adapters â€” SQLite repos, YAML parser, Todoist projection/adapter, config, logging. |
 | **presentation/** | CLI via Typer. `growth plan apply/show/stats`. |
-| **kernel/** | Composition root — manual DI wiring. |
+| **kernel/** | Composition root â€” manual DI wiring. |
 | **plugins/** | Extension contract (Plugin protocol). |
 
 Three import-linter contracts enforced in CI:
@@ -105,12 +107,12 @@ Three import-linter contracts enforced in CI:
 
 | Check | Status |
 |---|---|
-| ruff (lint + format) | ✅ |
-| mypy (strict mode, 81 source files) | ✅ |
-| import-linter (3 hexagonal contracts) | ✅ |
-| pytest (493 tests) | ✅ |
-| coverage | ✅ 98% |
-| Python 3.11 / 3.12 / 3.13 matrix | ✅ |
+| ruff (lint + format) | âœ… |
+| mypy (strict mode, 81 source files) | âœ… |
+| import-linter (3 hexagonal contracts) | âœ… |
+| pytest (493 tests) | âœ… |
+| coverage | âœ… 98% |
+| Python 3.11 / 3.12 / 3.13 matrix | âœ… |
 
 ---
 
@@ -118,15 +120,15 @@ Three import-linter contracts enforced in CI:
 
 | Document | Description |
 |---|---|
-| [📖 Tutorial](docs/TUTORIAL.md) | Step-by-step user guide — **start here** |
-| [🏗 Architecture](docs/architecture/ARCHITECTURE.md) | System design and dependency rules |
-| [🗺 Roadmap](docs/ROADMAP.md) | v0.1 → v1.0 plan |
-| [🤝 Contributing](docs/CONTRIBUTING.md) | How to contribute |
-| [🦞 Luo Handoff](docs/LUO_HANDOFF.md) | Complete project map for the next agent |
-| [⚙️ Dev Setup](docs/runbooks/development.md) | Dev environment and daily commands |
-| [📝 ADRs](docs/adr/) | Architecture Decision Records (3) |
-| [📋 Changelog](docs/CHANGELOG.md) | Release history |
-| [🎨 Code Style](docs/CODE_STYLE.md) | Coding conventions and tooling rationale |
+| [ðŸ“– Tutorial](docs/TUTORIAL.md) | Step-by-step user guide â€” **start here** |
+| [ðŸ— Architecture](docs/architecture/ARCHITECTURE.md) | System design and dependency rules |
+| [ðŸ—º Roadmap](docs/ROADMAP.md) | v0.1 â†’ v1.0 plan |
+| [ðŸ¤ Contributing](docs/CONTRIBUTING.md) | How to contribute |
+| [ðŸ¦ž Luo Handoff](docs/LUO_HANDOFF.md) | Complete project map for the next agent |
+| [âš™ï¸ Dev Setup](docs/runbooks/development.md) | Dev environment and daily commands |
+| [ðŸ“ ADRs](docs/adr/) | Architecture Decision Records (3) |
+| [ðŸ“‹ Changelog](docs/CHANGELOG.md) | Release history |
+| [ðŸŽ¨ Code Style](docs/CODE_STYLE.md) | Coding conventions and tooling rationale |
 
 ---
 
@@ -149,4 +151,4 @@ Three import-linter contracts enforced in CI:
 
 ## License
 
-MIT © Parsa Abed
+MIT Â© Parsa Abed

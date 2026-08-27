@@ -1,7 +1,11 @@
 # Example declarative workflow: a lightweight daily review.
 #
-# Steps wrap the deterministic Decision Engine (advisory, offline — no
-# AI, no network). Copy this file to ~/.growth/workflows/ so that
+# The decision steps wrap the Decision Engine (advisory). With AI
+# disabled (the default) they are fully deterministic and offline; with
+# GROWTH_AI_ENABLED=true + a configured LLM backend, each artifact gains
+# a short AI rationale on top of the same deterministic recommendation.
+#
+# Copy this file to ~/.growth/workflows/ so that
 # `growth workflow run daily-review` picks it up automatically:
 #
 #   mkdir -p ~/.growth/workflows

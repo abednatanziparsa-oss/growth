@@ -68,7 +68,7 @@ class HeuristicDecisionEngine:
         query: DecisionQuery,
         *,
         space_id: SpaceId | None = None,
-        _context: dict[str, object] | None = None,
+        context: dict[str, object] | None = None,
     ) -> DecisionArtifact:
         """Produce a heuristic recommendation for ``query``."""
         space = space_id or DEFAULT_SPACE_ID

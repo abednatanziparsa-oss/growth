@@ -96,7 +96,11 @@ class SharedDbAppFactory:
                 ollama_embedder=self._app.ollama_embedder,
             )
 
-        settings = self._settings or Settings()
+        # Hermetic by default: skip the developer .env so local AI/todoist
+        # config never leaks into tests (explicit env vars still apply).
+        # Tests that need .env-driven behavior construct Settings()
+        # explicitly. Mirrors test_cli_ai_apply.py's isolation approach.
+        settings = self._settings or Settings(_env_file=None)
         configure_logging(settings)
         container = Container.from_settings(settings)
 

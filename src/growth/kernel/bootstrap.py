@@ -56,6 +56,7 @@ from growth.kernel.container import Container
 if TYPE_CHECKING:
     from growth.application.ai_documents import AiDocumentSummarizer
     from growth.application.ai_interpreter import AiInterpreter
+    from growth.application.llm_decisions import LlmDecisionEngine
     from growth.application.ports.document_parser import DocumentParser
     from growth.application.ports.workflow import WorkflowEngine
     from growth.infrastructure.adapters.calendar import GoogleCalendarAdapter
@@ -196,15 +197,34 @@ class App:
         )
 
     @property
-    def decision_engine(self) -> HeuristicDecisionEngine:
-        """Build the heuristic Decision Engine (advisory, deterministic).
+    def heuristic_decision_engine(self) -> HeuristicDecisionEngine:
+        """Deterministic heuristic Decision Engine (advisory, no AI).
 
         Reads the task tree and returns recommendations; never mutates
-        state. Always available — no AI/network required.
+        state. Always available — no AI/network required. This is the
+        reproducible core; ``decision_engine`` wraps it with LLM advice.
         """
         from growth.infrastructure.decision.heuristic import HeuristicDecisionEngine
 
         return HeuristicDecisionEngine(self.task_repo)
+
+    @property
+    def decision_engine(self) -> LlmDecisionEngine:
+        """LLM-assisted Decision Engine — heuristic core + AI rationale.
+
+        The deterministic engine produces the recommendation payload;
+        the LLM (when enabled and configured) appends human-readable
+        advice to the artifact reasoning. With AI disabled (the default)
+        the Noop LLM raises immediately, so recommendations are exactly
+        the deterministic heuristic ones — queries never break.
+        """
+        from growth.application.llm_decisions import LlmDecisionEngine
+
+        return LlmDecisionEngine(
+            self.heuristic_decision_engine,
+            self.container.llm_chat,
+            model=self.settings.llm_model if self.settings.ai_enabled else None,
+        )
 
     @property
     def workflow_engine(self) -> WorkflowEngine:
@@ -329,13 +349,25 @@ def builtin_workflow_steps(
 ) -> dict[str, Callable[[dict[str, Any]], Any]]:
     """Built-in workflow steps wrapping real use cases (advisory).
 
-    These wrap the deterministic Decision Engine queries so declarative
-    workflows can run them as steps without business logic in the engine.
+    The decision steps route through ``app.decision_engine`` (heuristic
+    core; LLM-enriched only when ``GROWTH_AI_ENABLED`` is on).
+    ``plan-review`` aggregates the deterministic queries into one
+    artifact; ``plan-improve`` asks the LLM for improvement suggestions
+    over that review (offline-safe fallback).
     """
+    from growth.application.plan_review import PlanImprover, PlanReviewer
+
+    reviewer = PlanReviewer(app.heuristic_decision_engine)
+    improver = PlanImprover(
+        app.container.llm_chat,
+        model=app.settings.llm_model if app.settings.ai_enabled else None,
+    )
     return {
         "next-action": lambda _: app.decision_engine.recommend("next_action"),
         "blockers": lambda _: app.decision_engine.recommend("blockers"),
         "priority-sort": lambda _: app.decision_engine.recommend("priority_sort"),
+        "plan-review": lambda _: reviewer.review(),
+        "plan-improve": lambda _: improver.improve(reviewer.review()),
         "reminder-sweep": lambda _: (
             app.scheduler.sweep(DEFAULT_SPACE_ID) if app.scheduler is not None else None
         ),

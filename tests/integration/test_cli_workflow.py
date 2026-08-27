@@ -7,6 +7,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from growth.infrastructure.config.settings import Settings
+from growth.kernel.bootstrap import builtin_workflow_steps
 from growth.presentation.cli.app import app
 from tests.helpers import SharedDbAppFactory, yaml_file
 
@@ -98,6 +99,34 @@ def test_workflow_run_review_loop_with_execution_steps(monkeypatch, tmp_path) ->
     result = runner.invoke(app, ["workflow", "run", "review-loop"])
     assert result.exit_code == 0
     assert "ok (3 step(s))" in result.stdout
+
+
+def test_workflow_run_review_and_improve_steps(monkeypatch, tmp_path) -> None:
+    """v0.8: plan-review + plan-improve run offline (Noop LLM fallback)."""
+    factory = _factory(tmp_path)
+    monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+    path = yaml_file(
+        """
+        name: review-loop
+        trigger: time
+        steps:
+          - plan-review
+          - plan-improve
+        """
+    )
+    runner.invoke(app, ["workflow", "register", str(path)])
+
+    result = runner.invoke(app, ["workflow", "run", "review-loop"])
+    assert result.exit_code == 0
+    assert "ok (2 step(s))" in result.stdout
+
+
+def test_builtin_steps_include_review_and_improve(monkeypatch, tmp_path) -> None:
+    factory = _factory(tmp_path)
+    monkeypatch.setattr("growth.presentation.cli.app.build_app", factory)
+    steps = builtin_workflow_steps(factory())
+    assert "plan-review" in steps
+    assert "plan-improve" in steps
 
 
 def test_workflow_list(monkeypatch, tmp_path) -> None:

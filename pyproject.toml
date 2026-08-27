@@ -130,6 +130,10 @@ ignore = [
 "tests/**" = ["PLR2004", "S101", "ARG001", "ARG002", "N803", "RUF001"]
 # Noop implementations are intentionally stubby.
 "src/growth/infrastructure/noop/**" = ["ARG001", "ARG002"]
+# The heuristic engine must accept `context` to match the DecisionEngine
+# port signature, but deliberately ignores it (context feeds the LLM
+# wrapper's prompt, not the deterministic sort).
+"src/growth/infrastructure/decision/heuristic.py" = ["ARG002"]
 # Kernel: imports infrastructure for wiring.
 # Lazy google imports (heavy client) are intentional here.
 "src/growth/infrastructure/adapters/calendar.py" = ["PLC0415"]

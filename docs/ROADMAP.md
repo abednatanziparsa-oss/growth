@@ -40,6 +40,11 @@
 - WorkflowEngine: declarative YAML workflows, dry-run, cancelable, persisted (`~/.growth/workflows`) ✅
 - Review loop: execution → review shipped as `examples/workflows/review-loop.yaml`; planning/improvement advisory (LLM-assisted later) ✅
 
+## v0.8 — LLM-assisted Decisions & Review Loop — Complete ✅
+- LlmDecisionEngine: deterministic heuristic core + LLM rationale, offline-safe fallback (recommendation payload never altered) ✅
+- PlanReviewer (deterministic aggregate) + PlanImprover (LLM suggestions, `growth-plan-improve-v1`) ✅
+- Workflow steps `plan-review` / `plan-improve`; review-loop example covers execution → review → improvement ✅
+
 ## v1.0 — Platform
 - Plugin marketplace
 - Desktop app (PySide6)
@@ -53,4 +58,5 @@
 | v0.1 – v0.5 | ✅ Complete (planning, sync, export, knowledge, reminders + Google Calendar + ICS) |
 | v0.6 | ✅ Complete — LLM chat + AI interpreter + PDF parser + live smoke test (9Router + Kiro, `kr/deepseek-3.2`) |
 | v0.7 | ✅ Complete — heuristic Decision Engine + declarative Workflow Engine (dry-run, cancelable, persisted) + review-loop example |
+| v0.8 | ✅ Complete — LLM-assisted decisions (heuristic core + AI rationale) + plan-review/plan-improve workflow steps |
 | v1.0 | ⏳ Not started |

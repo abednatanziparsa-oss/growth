@@ -1,10 +1,11 @@
-# Example review-loop workflow: execution → review.
+# Example review-loop workflow: execution → review → improvement.
 #
-# The full v0.7 vision is planning → execution → review → improvement.
-# Planning (AiInterpreter) needs an LLM and improvement is advisory, so
-# this offline-capable example wires the stages that run with zero
-# network/AI: fire due reminders (execution), render the calendar
-# (execution), then the deterministic Decision Engine queries (review).
+# The full v0.8 loop: fire due reminders and render the calendar
+# (execution), aggregate the deterministic Decision Engine queries
+# (plan-review), then ask the LLM for concrete improvement suggestions
+# (plan-improve). plan-improve is offline-safe: with AI disabled or the
+# backend unreachable it returns the deterministic review unchanged and
+# the workflow still succeeds.
 #
 # Copy to ~/.growth/workflows/ and run:
 #   growth workflow run review-loop            # or: --dry-run
@@ -13,6 +14,7 @@ trigger: time
 steps:
   - reminder-sweep
   - export-ics
-  - blockers
+  - plan-review
+  - plan-improve
   - next-action
   - priority-sort

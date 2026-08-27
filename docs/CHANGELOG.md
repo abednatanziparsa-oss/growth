@@ -2,6 +2,19 @@
 
 All notable changes to Growth OS.
 
+## [0.8.0] — 2026-08-27
+
+### Added
+- **LlmDecisionEngine** (`application/llm_decisions.py`) — wraps the deterministic heuristic core with an `LLMChat` enrichment pass: the recommendation payload stays exactly the deterministic one, the LLM appends a short human rationale (`growth-decision-advice-v1`). Offline-first: `LLMUnavailableError` returns the base artifact unchanged; empty recommendations skip the LLM entirely
+- **PlanReviewer + PlanImprover** (`application/plan_review.py`) — `plan-review` aggregates next_action + blockers + priority_sort into one deterministic artifact; `plan-improve` asks the LLM for concrete improvement suggestions (`growth-plan-improve-v1`), falling back to the deterministic review when the LLM is unavailable
+- **New built-in workflow steps** — `plan-review`, `plan-improve` (join next-action/blockers/priority-sort); `review-loop.yaml` example extended to the full execution → review → improvement loop
+- **Bootstrap wiring** — `App.decision_engine` now returns the LLM-wrapped engine over a new `App.heuristic_decision_engine` (deterministic core stays directly accessible); with AI disabled (default) behavior is byte-identical to v0.7
+- **CLI** — `decide next-action/blockers/sort` display an `[AI: model]` line plus advice when a model produced the artifact
+
+### Changed
+- `HeuristicDecisionEngine.recommend` parameter `_context` renamed to `context` — signature now matches the `DecisionEngine` port (and `NoopDecisionEngine`)
+- Test helper `SharedDbAppFactory` is hermetic by default (`Settings(_env_file=None)`) so a developer's `.env` (e.g. live AI config) can never leak into integration tests
+
 ## [0.7.0] — 2026-08-26
 
 ### Added

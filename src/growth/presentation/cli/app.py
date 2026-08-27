@@ -239,6 +239,8 @@ def decide_next_action() -> None:
     typer.echo(f"Next action: {rec['title']}  [priority: {prio}]")
     if rec.get("due_at"):
         typer.echo(f"  due: {rec['due_at']}")
+    if artifact.model:
+        typer.echo(f"  [AI: {artifact.model}]")
     typer.echo(f"  reason: {artifact.reasoning}")
 
 
@@ -253,6 +255,8 @@ def decide_blockers() -> None:
         return
     for item in rec:
         typer.echo(f"- {item['title']}  (overdue {item['overdue_minutes']}m)")
+    if artifact.model and artifact.reasoning:
+        typer.echo(f"  [AI: {artifact.model}] {artifact.reasoning}")
 
 
 @decide_app.command(name="sort")
@@ -267,6 +271,8 @@ def decide_sort() -> None:
     for item in rec:
         prio = item.get("priority") or "none"
         typer.echo(f"- [{prio}] {item['title']}")
+    if artifact.model and artifact.reasoning:
+        typer.echo(f"  [AI: {artifact.model}] {artifact.reasoning}")
 
 
 workflow_app = typer.Typer(help="Declarative workflow commands.")
