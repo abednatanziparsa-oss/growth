@@ -26,7 +26,7 @@
 5. Every optional port has a Noop default - system runs offline by default
 6. YAGNI: plugin registry, workflow scheduling deferred; AI backends exist behind ports but stay Noop-default (offline-first)
 
-## Current State (2026-08-27) - v0.8 COMPLETE + Google Calendar production live
+## Current State (2026-08-29) — v0.9 COMPLETE (plugin marketplace core) + CI resurrected
 
 ### CI: ALL GREEN ✅
 - ruff lint ✅, ruff format ✅, mypy strict ✅ (89 files), import-linter ✅ (3 kept), pytest ✅ (573 passed, 1 skipped - live Todoist E2E needs token)
@@ -61,6 +61,7 @@
 - **Workflow YAML loader + CLI + persistence** (v0.7, 2026-08-26): `parse_workflow_yaml` (`infrastructure/workflow/loader.py`, name/trigger/steps validation, safe-filename check); `Settings.workflows_dir` (default `~/.growth/workflows`); bootstrap `persist_workflow_yaml`/`load_workflows_dir`/`builtin_workflow_steps` (next-action, blockers, priority-sort, reminder-sweep, export-ics); CLI `workflow register|run|list` - register persists, run auto-loads the dir (cross-process); examples `daily-review.yaml` + `review-loop.yaml` - **100%**
 - **CLI exit-code fix** (v0.7, 2026-08-26): `run()` discarded the typer exit code (`app(standalone_mode=False)` return ignored, always `sys.exit(0)`) - every failing command exited 0; now propagates. Verified live: failing → 1, success → 0
 - **LlmDecisionEngine** (v0.8, 2026-08-27): `application/llm_decisions.py` - wraps the deterministic `DecisionEngine` with `LLMChat` enrichment: recommendation payload NEVER altered, LLM appends rationale to reasoning (`growth-decision-advice-v1`); `LLMUnavailableError` → base artifact unchanged; falsy recommendation → LLM skipped entirely; advice capped 1200 chars; `App.decision_engine` returns it over new `App.heuristic_decision_engine` property; CLI `decide` shows `[AI: model]` line - **100%**
+- **Plugin marketplace core** (v0.9, 2026-08-28/29, first v1.0 platform increment, ZERO new deps): `growth/plugins/manifest.py` (validated plugin.yaml: safe-name rules, `module:ClassName` entry, optional author/permissions); `growth/plugins/loader.py` (failure-isolated discovery via `spec_from_file_location` — no sys.path mutation; `activate_plugins` calls the documented `Plugin.register(container)` contract with per-plugin isolation; `install_plugin`/`uninstall_plugin` with duplicate + traversal protection + post-copy re-validation rollback); bootstrap activates at `build_app` (`App.plugins`); `Settings.plugins_dir`; CLI `growth plugin list/install/uninstall/info` (permissions advisory); example `examples/plugins/hello-growth/` — **both modules 100% covered**
 - **PlanReviewer + PlanImprover** (v0.8, 2026-08-27): `application/plan_review.py` - `plan-review` aggregates next_action+blockers+priority_sort into one deterministic artifact (capability `plan_review`); `plan-improve` asks LLM for suggestions (`growth-plan-improve-v1`, capped 2000 chars), falls back to the review unchanged when unavailable (capability `plan_improvement`); new builtin workflow steps `plan-review`/`plan-improve`; `review-loop.yaml` example now execution → review → improvement - **100%**
 - SyncEventDispatcher: pub/sub with failure isolation - **100%**
 - 10 application ports (all Protocols): AI, clock, decision, events, interpreter, knowledge, parser, projection, adapter, repo, workflow
@@ -92,7 +93,7 @@
 ### What's NOT Yet Built (v1.0)
 - Google Calendar production: **DONE 2026-08-26** ✅ - app published (In production) + fresh token under production rules (no 7-day expiry)
 - LLM-assisted decisions + planning/improvement workflow steps: **DONE 2026-08-27** ✅ (v0.8)
-- Platform: plugin marketplace, desktop app (PySide6), GraphQL API, multi-user spaces (v1.0)
+- **What's NOT Yet Built (v1.0 platform)**: plugin marketplace future (remote registry, permission enforcement, workflow-step contribution), desktop app (PySide6), GraphQL API, multi-user spaces
 
 ## Decisions Made
 
@@ -128,18 +129,27 @@
 - **Status tables after turns:** When working on long multi-step coding tasks, end each turn with a Persian summary table (✅ انجام شده / 🔄 در حال انجام / ⏳ باقی‌مانده) showing what was completed, what's in progress, and what remains. This keeps Parsa oriented during long sessions without needing to scroll back.
 - **Resume work continuously (2026-08-12):** Parsa wants work to run end-to-end without piecemeal stops - do NOT ask "should I start?" between steps; pick up where the last session left off and push to completion (test → CI green → commit → push) in the same turn. Ask only when genuinely blocked on a decision.
 
-## Session Log (2026-08-27) — v0.8 LLM-assisted decisions + review loop + CI resurrection ✅
+## Session Log (2026-08-27) - v0.8 LLM-assisted decisions + review loop + CI resurrection ✅
 
-- [x] `LlmDecisionEngine` (`application/llm_decisions.py`) + `PlanReviewer`/`PlanImprover` (`application/plan_review.py`) — both **100% covered** ✅
+- [x] `LlmDecisionEngine` (`application/llm_decisions.py`) + `PlanReviewer`/`PlanImprover` (`application/plan_review.py`) - both **100% covered** ✅
 - [x] Bootstrap: `App.decision_engine` → LLM-wrapped over new `App.heuristic_decision_engine`; builtin steps + `plan-review`/`plan-improve`; CLI `decide` shows `[AI: model]` ✅
 - [x] heuristic `_context` → `context` (port conformance, ruff ARG002 per-file ignore added)
-- [x] `SharedDbAppFactory` hermetic (`Settings(_env_file=None)`) — dev .env had `GROWTH_AI_ENABLED=true` and would have hit the LLM from decide tests ✅
+- [x] `SharedDbAppFactory` hermetic (`Settings(_env_file=None)`) - dev .env had `GROWTH_AI_ENABLED=true` and would have hit the LLM from decide tests ✅
 - [x] CI: 573 passed / 1 skipped, 98% (new files 100%), mypy 89 files, import-linter 3/3, ruff clean; pushed `bd37813` ✅
 - [x] Live-verified with REAL 9Router + Kiro (`kr/deepseek-3.2`, running as of 23:54): `decide next-action` shows `[AI: kr/deepseek-3.2]` + advice; plan-review/plan-improve workflow ok ✅
-- [x] **CI RESURRECTED** — GitHub Actions had NEVER run (0s startup failures since commit #1, ~45 runs): gh token was missing `workflow` scope (Parsa ran `gh auth refresh -s workflow`), then 14-smoke bisection isolated the double-quoted `if` expression; real pipeline restored `7f4a9b2`+`33289ef`; **first GREEN run 33117201856 (1m35s, py3.11/3.12/3.13)** — py313 needed the unraisable-warning ignore ✅
+- [x] **CI RESURRECTED** - GitHub Actions had NEVER run (0s startup failures since commit #1, ~45 runs): gh token was missing `workflow` scope (Parsa ran `gh auth refresh -s workflow`), then 14-smoke bisection isolated the double-quoted `if` expression; real pipeline restored `7f4a9b2`+`33289ef`; **first GREEN run 33117201856 (1m35s, py3.11/3.12/3.13)** - py313 needed the unraisable-warning ignore ✅
 - [x] Docs: README v0.8 + decide/workflow command rows, CHANGELOG 0.8.0, ROADMAP v0.8 ✅
 
-## Session Log (2026-08-26) — MEMORY fix + v0.7 complete + calendar bugfix ✅
+## Session Log (2026-08-28/29) — v0.9 plugin marketplace core ✅
+
+- [x] `manifest.py` + `loader.py` (both 100% covered, 33 new tests) + bootstrap activation + CLI + example plugin — commit `b530758` + format fix `00bc0f3` ✅
+- [x] Live CLI round trip: install → list `[active]` → info (permissions advisory) → uninstall ✅
+- [x] CI green on v0.9 (`33272131794`): 636 tests × py3.11/3.12/3.13, coverage 98% total, mypy 91 files, import-linter 3/3 ✅
+- [x] Gotcha hit: `version: 1.0` in test YAML parses as FLOAT not string (quote versions); CliRunner error messages via `err=True` land in `result.stderr` not `result.stdout` ✅
+- Design decision: plugin contract stays `Plugin.register(container)` per existing protocol docstring; workflow-step contribution + remote registry + permission enforcement deferred to future marketplace increments
+- Next up (v1.0): desktop app (PySide6) / GraphQL API / multi-user spaces — note: new deps need network; PyPI unreachable from Iran (design increments to be stdlib-only where possible)
+
+## Session Log (2026-08-26) - MEMORY fix + v0.7 complete + calendar bugfix ✅
 
 - [x] MEMORY.md updated directly (Hermes policy: explicit user ask = ordinary file edit); committed `3d29ec7` with `git push 2>$null` → EXIT 0 (lesson applied) ✅
 - [x] **v0.7 WorkflowEngine** shipped in 5 commits: `ccfffce` (engine core), `c234a8a` (YAML loader + CLI), `026cc4d` (CLI exit-code fix), `6efe145` (persistence + auto-load + list), `4d21ed5` (close-out: review-loop example + status docs) ✅
