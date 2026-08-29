@@ -250,11 +250,7 @@ def test_load_instance_not_class(tmp_path: Path) -> None:
 def test_load_instance_without_name(tmp_path: Path) -> None:
     _make_plugin(
         tmp_path,
-        body=(
-            "class HelloPlugin:\n"
-            "    def register(self, container):\n"
-            "        pass\n"
-        ),
+        body=("class HelloPlugin:\n    def register(self, container):\n        pass\n"),
     )
     loaded = load_plugins(tmp_path)
     assert loaded[0].instance is None
