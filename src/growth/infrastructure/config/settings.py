@@ -87,6 +87,15 @@ class Settings(BaseSettings):
         ),
     )
 
+    plugins_dir: Path = Field(
+        default_factory=lambda: default_data_dir() / "plugins",
+        description=(
+            "Directory of installed plugins (one subdirectory per plugin "
+            "with a plugin.yaml manifest); loaded at startup by the "
+            "composition root."
+        ),
+    )
+
     # --- AI (all optional, all off by default) -------------------------------
     ai_enabled: bool = Field(
         default=False,

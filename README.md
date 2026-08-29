@@ -2,7 +2,7 @@
 
 **A personal growth operating system** â€” planning, knowledge management, learning, review, and execution in one cohesive system.
 
-> **Status:** v0.8 - LLM-assisted Decisions & Review Loop: heuristic recommendations enriched with AI rationale (offline-safe fallback), plan-review/plan-improve workflow steps.
+> **Status:** v0.9 - Plugin Marketplace (first v1.0 platform increment): local plugin discovery, validated manifests, install/uninstall lifecycle, startup activation with failure isolation.
 
 ---
 
@@ -53,6 +53,7 @@ Interpreter  Projection (Todoist, Markdown, ...)
 | `growth calendar auth/push/list/export-ics` | Push reminders to Google Calendar or export `.ics` |
 | `growth decide next-action/blockers/sort` | Advisory recommendations (AI-enriched when `GROWTH_AI_ENABLED=true`) |
 | `growth workflow register/run/list` | Declarative YAML workflows (plan review + AI improvement loop) |
+| `growth plugin list/install/uninstall/info` | Install local plugins; they activate at startup (failure-isolated) |
 | `growth --version` | Show installed version |
 
 **Example YAML:**

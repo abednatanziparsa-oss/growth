@@ -2,6 +2,15 @@
 
 All notable changes to Growth OS.
 
+## [0.9.0] — 2026-08-28
+
+### Added
+- **Plugin marketplace core** (first v1.0 platform increment) — local plugin discovery from `~/.growth/plugins/<name>/plugin.yaml`, validated manifests (`growth/plugins/manifest.py`: safe-name rules, `module:ClassName` entry format, optional author/permissions)
+- **Loader + lifecycle** (`growth/plugins/loader.py`) — failure-isolated discovery/import (broken plugins surface as errored `LoadedPlugin` entries, never crash the app), startup activation via the existing `Plugin.register(container)` contract, install/uninstall with duplicate + path-traversal protection and post-copy re-validation rollback
+- **CLI `growth plugin list/install/uninstall/info`** — permissions shown as advisory (plugins run with full user privileges; documented trust model)
+- **Bootstrap wiring** — `build_app` activates plugins into `Container`; `App.plugins` exposes loaded entries; `Settings.plugins_dir` (default `~/.growth/plugins`)
+- **Example plugin** `examples/plugins/hello-growth/` — minimal manifest + entry template for plugin authors
+
 ## [0.8.0] — 2026-08-27
 
 ### Added

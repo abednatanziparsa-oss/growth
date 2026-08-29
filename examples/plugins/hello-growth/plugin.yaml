@@ -1,0 +1,6 @@
+name: hello-growth
+version: 0.1.0
+description: Minimal example plugin - logs a greeting when activated.
+author: Growth OS
+entry: hello_plugin:HelloPlugin
+permissions: []

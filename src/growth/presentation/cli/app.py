@@ -278,6 +278,101 @@ def decide_sort() -> None:
 workflow_app = typer.Typer(help="Declarative workflow commands.")
 app.add_typer(workflow_app, name="workflow")
 
+plugin_app = typer.Typer(help="Plugin marketplace commands.")
+app.add_typer(plugin_app, name="plugin")
+
+
+@plugin_app.command(name="list")
+def plugin_list() -> None:
+    """List installed plugins with their load status."""
+    from growth.plugins.loader import load_plugins
+
+    app_ctx = build_app()
+    loaded = load_plugins(app_ctx.settings.plugins_dir)
+    if not loaded:
+        typer.echo(
+            "No plugins installed. Run 'growth plugin install <path>' to install one."
+        )
+        return
+    for entry in loaded:
+        if entry.error is not None:
+            status = f"[broken] {entry.error}"
+        elif entry.activation_error is not None:
+            status = f"[activation-failed] {entry.activation_error}"
+        else:
+            status = "[active]"
+        manifest = entry.manifest
+        version = manifest.version if manifest else "?"
+        typer.echo(f"  {entry.display_name}  v{version}  {status}")
+
+
+@plugin_app.command(name="install")
+def plugin_install(
+    source: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            help="Path to a plugin directory (with plugin.yaml).",
+        ),
+    ],
+) -> None:
+    """Install a plugin from a local directory into the plugins dir."""
+    from growth.plugins.loader import PluginInstallError, install_plugin
+
+    app_ctx = build_app()
+    try:
+        manifest = install_plugin(source, app_ctx.settings.plugins_dir)
+    except (PluginInstallError, OSError) as exc:
+        typer.echo(f"[ERROR] Install failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"[OK] Installed '{manifest.name}' v{manifest.version} "
+        "- restart 'growth' commands to activate it."
+    )
+
+
+@plugin_app.command(name="uninstall")
+def plugin_uninstall(
+    name: Annotated[str, typer.Argument(help="Installed plugin name.")],
+) -> None:
+    """Remove an installed plugin."""
+    from growth.plugins.loader import PluginInstallError, uninstall_plugin
+
+    app_ctx = build_app()
+    try:
+        removed = uninstall_plugin(name, app_ctx.settings.plugins_dir)
+    except PluginInstallError as exc:
+        typer.echo(f"[ERROR] {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"[OK] Uninstalled '{name}' (removed {removed}).")
+
+
+@plugin_app.command(name="info")
+def plugin_info(
+    name: Annotated[str, typer.Argument(help="Installed plugin name.")],
+) -> None:
+    """Show the manifest details of an installed plugin."""
+    from growth.plugins.loader import load_plugins
+
+    app_ctx = build_app()
+    for entry in load_plugins(app_ctx.settings.plugins_dir):
+        if entry.manifest is not None and entry.manifest.name == name:
+            m = entry.manifest
+            typer.echo(f"Name:         {m.name}")
+            typer.echo(f"Version:      {m.version}")
+            typer.echo(f"Description:  {m.description}")
+            typer.echo(f"Author:       {m.author or '-'}")
+            typer.echo(f"Entry:        {m.entry}")
+            perms = ", ".join(m.permissions) if m.permissions else "(none declared)"
+            typer.echo(f"Permissions:  {perms} (advisory - not enforced)")
+            if entry.error:
+                typer.echo(f"Status:       broken ({entry.error})", err=True)
+                raise typer.Exit(code=1)
+            return
+    typer.echo(f"[ERROR] Plugin '{name}' is not installed.", err=True)
+    raise typer.Exit(code=1)
+
 
 @workflow_app.command(name="register")
 def workflow_register(path: Path) -> None:

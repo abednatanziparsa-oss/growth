@@ -52,6 +52,7 @@ from growth.infrastructure.storage.reminder_repos import (
 from growth.infrastructure.storage.semantic_search import SemanticSearch
 from growth.infrastructure.sync.engine import SyncEngine, init_sync_state
 from growth.kernel.container import Container
+from growth.plugins.loader import LoadedPlugin, activate_plugins
 
 if TYPE_CHECKING:
     from growth.application.ai_documents import AiDocumentSummarizer
@@ -93,6 +94,7 @@ class App:
     event_dispatcher: EventDispatcher | None = field(default=None, repr=False)
     scheduler: Scheduler | None = field(default=None, repr=False)
     ollama_embedder: OllamaEmbedder | None = field(default=None, repr=False)
+    plugins: tuple[LoadedPlugin, ...] = field(default=(), repr=False)
 
     @property
     def calendar_adapter(self) -> GoogleCalendarAdapter | None:
@@ -280,6 +282,11 @@ def build_app(settings: Settings | None = None) -> App:
     configure_logging(settings)
     container = Container.from_settings(settings)
 
+    # Plugin marketplace (v1.0 platform): discover installed plugins and
+    # let each register into the container. Failure-isolated — a broken
+    # plugin is reported on App.plugins and skipped, never fatal.
+    plugins = activate_plugins(container, settings.plugins_dir)
+
     db_path = settings.data_dir / "growth.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(str(db_path))
@@ -341,6 +348,7 @@ def build_app(settings: Settings | None = None) -> App:
         event_dispatcher=container.event_dispatcher,
         scheduler=scheduler,
         ollama_embedder=ollama_embedder,
+        plugins=plugins,
     )
 
 

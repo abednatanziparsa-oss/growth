@@ -130,6 +130,9 @@ ignore = [
 "tests/**" = ["PLR2004", "S101", "ARG001", "ARG002", "N803", "RUF001"]
 # Noop implementations are intentionally stubby.
 "src/growth/infrastructure/noop/**" = ["ARG001", "ARG002"]
+# Example plugins: register(container) is the required contract signature
+# even when a minimal example does not use the container.
+"examples/**" = ["ARG001", "ARG002"]
 # The heuristic engine must accept `context` to match the DecisionEngine
 # port signature, but deliberately ignores it (context feeds the LLM
 # wrapper's prompt, not the deterministic sort).
@@ -192,6 +195,10 @@ disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
 module = "growth.infrastructure.workflow.loader"
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = "growth.plugins.manifest"
 disable_error_code = ["import-untyped"]
 
 # --- AI (all optional, all off by default) -------------------------------

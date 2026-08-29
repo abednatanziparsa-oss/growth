@@ -46,7 +46,7 @@
 - Workflow steps `plan-review` / `plan-improve`; review-loop example covers execution → review → improvement ✅
 
 ## v1.0 — Platform
-- Plugin marketplace
+- Plugin marketplace — core landed ✅ (2026-08-28): local discovery + manifest validation + install/uninstall lifecycle + startup activation; future: remote registry, permission enforcement, workflow-step contribution
 - Desktop app (PySide6)
 - GraphQL API
 - Multi-user spaces
@@ -59,4 +59,5 @@
 | v0.6 | ✅ Complete — LLM chat + AI interpreter + PDF parser + live smoke test (9Router + Kiro, `kr/deepseek-3.2`) |
 | v0.7 | ✅ Complete — heuristic Decision Engine + declarative Workflow Engine (dry-run, cancelable, persisted) + review-loop example |
 | v0.8 | ✅ Complete — LLM-assisted decisions (heuristic core + AI rationale) + plan-review/plan-improve workflow steps |
-| v1.0 | ⏳ Not started |
+| v0.9 | ✅ Complete — plugin marketplace core (discovery, manifests, lifecycle, CLI) |
+| v1.0 | 🔄 In progress — plugin marketplace core done; desktop app, GraphQL API, multi-user spaces pending |
